@@ -36,7 +36,7 @@ import {
   createSuccessResponse,
 } from './tool-patterns.js';
 import { formatQuery } from 'gremlint';
-import { GremlinTranslator } from 'gremlin-language/language';
+import { GremlinTranslator } from 'gremlin/language';
 import { normalizeAndTranslate } from '../translator/index.js';
 import type { AppConfigType } from '../config.js';
 import {
@@ -119,14 +119,14 @@ const translateQueryInputSchema = z
       .string()
       .min(1, 'The Gremlin query cannot be empty')
       .describe(
-        'The Gremlin query string to translate. When source is omitted or "canonical", must use gremlin-language ANTLR grammar format. For any other source value, the query will be normalized automatically.'
+        'The Gremlin query string to translate. When source is omitted or "canonical", must use canonical Gremlin ANTLR grammar format. For any other source value, the query will be normalized automatically.'
       ),
     target: z.enum(TRANSLATE_TARGETS).describe('The target language to translate into'),
     source: z
       .enum(TRANSLATE_SOURCES)
       .optional()
       .describe(
-        'The source dialect of the input query. Omit or use "auto" to normalize automatically via LLM before translating (default behavior). Use "canonical" to skip normalization and translate directly (only if your input is already in canonical gremlin-language ANTLR format).'
+        'The source dialect of the input query. Omit or use "auto" to normalize automatically via LLM before translating (default behavior). Use "canonical" to skip normalization and translate directly (only if your input is already in canonical Gremlin ANTLR grammar format).'
       ),
     traversalSource: z
       .string()
@@ -292,7 +292,7 @@ function registerUtilityTools(server: McpServer, runtime: Runtime.Runtime<Gremli
     {
       title: 'Translate Gremlin Query',
       description:
-        'Translate a Gremlin query into another language variant. By default, automatically normalizes the input via LLM before translating. Set source to "canonical" to skip normalization if the input is already in canonical gremlin-language ANTLR format.',
+        'Translate a Gremlin query into another language variant. By default, automatically normalizes the input via LLM before translating. Set source to "canonical" to skip normalization if the input is already in canonical Gremlin ANTLR grammar format.',
       inputSchema: translateQueryInputSchema.shape,
     },
     (args: unknown) => {

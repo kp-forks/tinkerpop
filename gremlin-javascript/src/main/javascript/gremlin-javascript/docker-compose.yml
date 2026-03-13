@@ -48,8 +48,10 @@ services:
       - .:/js_app
       - ../../../../../gremlin-test/src/main/resources/org/apache/tinkerpop/gremlin/test/features:/gremlin-test
       - ../../../../../gremlin-test/src/main/resources/org/apache/tinkerpop/gremlin/structure/io/graphbinary:/js_app/gremlin-test/graphbinary
+      - ../../../../../gremlin-test/src/main/resources/org/apache/tinkerpop/gremlin/language/translator:/js_app/gremlin-test/src/main/resources/org/apache/tinkerpop/gremlin/language/translator
       - ../../../../../docker/gremlin-test-server:/js_app/gremlin-test-server
       - ../../../../../gremlin-tools/gremlin-socket-server/conf:/js_app/gremlin-socket-server/conf/
+      - ../../../../../gremlin-language/src/main/antlr4:/gremlin-language/src/main/antlr4
       - ../../../..:/gremlin-javascript
     environment:
       - DOCKER_ENVIRONMENT=true

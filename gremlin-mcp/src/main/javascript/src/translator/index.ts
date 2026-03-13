@@ -27,7 +27,7 @@
  */
 
 import type { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { GremlinTranslator } from 'gremlin-language/language';
+import { GremlinTranslator } from 'gremlin/language';
 import { applyMechanicalNormalization } from './normalizers/shared.js';
 import { normalizeWithLlm } from './llm.js';
 
