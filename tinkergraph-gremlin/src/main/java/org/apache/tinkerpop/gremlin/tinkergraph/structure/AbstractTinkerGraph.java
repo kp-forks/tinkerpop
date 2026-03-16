@@ -39,6 +39,7 @@ import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -63,8 +64,8 @@ public abstract class AbstractTinkerGraph implements Graph {
     public static final String GREMLIN_TINKERGRAPH_ALLOW_NULL_PROPERTY_VALUES = "gremlin.tinkergraph.allowNullPropertyValues";
     public static final String GREMLIN_TINKERGRAPH_SERVICE = "gremlin.tinkergraph.service";
 
-
     protected AtomicLong currentId = new AtomicLong(-1L);
+    protected Map<Object, VertexProperty> vertexProperties = new ConcurrentHashMap<>();
 
     protected TinkerGraphVariables variables = null;
     protected TinkerGraphComputerView graphComputerView = null;
@@ -170,6 +171,13 @@ public abstract class AbstractTinkerGraph implements Graph {
      */
     public abstract boolean hasEdge(final Object id);
 
+    /**
+     * Returns true if a {@link VertexProperty} with the given identifier exists in this graph.
+     */
+    public boolean hasVertexProperty(final Object id) {
+        return vertexProperties.containsKey(id);
+    }
+
     protected void loadGraph() {
         final File f = new File(graphLocation);
         if (f.exists() && f.isFile()) {
@@ -257,6 +265,7 @@ public abstract class AbstractTinkerGraph implements Graph {
         this.vertexIndex = null;
         this.edgeIndex = null;
         this.graphComputerView = null;
+        this.vertexProperties.clear();
     }
 
     /**
@@ -398,14 +407,14 @@ public abstract class AbstractTinkerGraph implements Graph {
      * Construct an {@link IdManager} from the TinkerGraph {@code Configuration}.
      */
     protected static <T extends Element> IdManager<T> selectIdManager(final Configuration config, final String configKey, final Class<T> clazz) {
-        final String vertexIdManagerConfigValue = config.getString(configKey, DefaultIdManager.ANY.name());
+        final String idManagerConfigValue = config.getString(configKey, DefaultIdManager.ANY.name());
         try {
-            return DefaultIdManager.valueOf(vertexIdManagerConfigValue);
+            return DefaultIdManager.valueOf(idManagerConfigValue);
         } catch (IllegalArgumentException iae) {
             try {
-                return (IdManager) Class.forName(vertexIdManagerConfigValue).newInstance();
+                return (IdManager) Class.forName(idManagerConfigValue).newInstance();
             } catch (Exception ex) {
-                throw new IllegalStateException(String.format("Could not configure TinkerGraph %s id manager with %s", clazz.getSimpleName(), vertexIdManagerConfigValue));
+                throw new IllegalStateException(String.format("Could not configure TinkerGraph %s id manager with %s", clazz.getSimpleName(), idManagerConfigValue));
             }
         }
     }
@@ -447,7 +456,7 @@ public abstract class AbstractTinkerGraph implements Graph {
         LONG {
             @Override
             public Long getNextId(final AbstractTinkerGraph graph) {
-                return Stream.generate(() -> (graph.currentId.incrementAndGet())).filter(id -> !graph.hasVertex(id) && !graph.hasEdge(id)).findAny().get();
+                return Stream.generate(() -> (graph.currentId.incrementAndGet())).filter(id -> !graph.hasVertex(id) && !graph.hasEdge(id) && !graph.hasVertexProperty(id)).findAny().get();
             }
 
             @Override
@@ -482,7 +491,7 @@ public abstract class AbstractTinkerGraph implements Graph {
         INTEGER {
             @Override
             public Integer getNextId(final AbstractTinkerGraph graph) {
-                return Stream.generate(() -> (graph.currentId.incrementAndGet())).map(Long::intValue).filter(id -> !graph.hasVertex(id) && !graph.hasEdge(id)).findAny().get();
+                return Stream.generate(() -> (graph.currentId.incrementAndGet())).map(Long::intValue).filter(id -> !graph.hasVertex(id) && !graph.hasEdge(id) && !graph.hasVertexProperty(id)).findAny().get();
             }
 
             @Override
@@ -551,7 +560,7 @@ public abstract class AbstractTinkerGraph implements Graph {
         ANY {
             @Override
             public Long getNextId(final AbstractTinkerGraph graph) {
-                return Stream.generate(() -> (graph.currentId.incrementAndGet())).filter(id -> !graph.hasVertex(id) && !graph.hasEdge(id)).findAny().get();
+                return Stream.generate(() -> (graph.currentId.incrementAndGet())).filter(id -> !graph.hasVertex(id) && !graph.hasEdge(id) && !graph.hasVertexProperty(id)).findAny().get();
             }
 
             @Override

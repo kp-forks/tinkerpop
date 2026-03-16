@@ -174,6 +174,7 @@ public class TinkerVertexProperty<V> extends TinkerElement implements VertexProp
                     delete.set(false);
             });
             if (delete.get()) TinkerIndexHelper.removeIndex(this.vertex, this.key, this.value);
+            ((AbstractTinkerGraph) vertex.graph()).vertexProperties.remove(this.id);
             this.properties = null;
             this.removed = true;
         }
