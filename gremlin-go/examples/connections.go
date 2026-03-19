@@ -68,10 +68,8 @@ func withConfigs() {
 	driverRemoteConnection, err := gremlingo.NewDriverRemoteConnection(serverURL,
 		func(settings *gremlingo.DriverRemoteConnectionSettings) {
 			settings.TraversalSource = "g"
-			settings.NewConnectionThreshold = 4
+			settings.MaximumConcurrentConnections = 4
 			settings.EnableCompression = false
-			settings.ReadBufferSize = 0
-			settings.WriteBufferSize = 0
 		})
 
 	if err != nil {
@@ -80,7 +78,7 @@ func withConfigs() {
 	}
 
 	defer driverRemoteConnection.Close()
-	g := gremlingo.Traversal_().WithRemote(driverRemoteConnection)
+	g := gremlingo.Traversal_().With(driverRemoteConnection)
 
 	g.AddV(vertexLabel).Iterate()
 	count, _ := g.V().HasLabel(vertexLabel).Count().Next()

@@ -45,8 +45,8 @@ public class ModernTraversals {
         List<Edge> e2 = g.V(1).bothE().where(otherV().hasId(2)).toList(); // (2)
         Vertex v1 = g.V(1).next();
         Vertex v2 = g.V(2).next();
-        List<Edge> e3 = g.V(v1).bothE().where(otherV().is(v2)).toList(); // (3)
-        List<Edge> e4 = g.V(v1).outE().where(inV().is(v2)).toList(); // (4)
+        List<Edge> e3 = g.V(v1).bothE().where(otherV().id().is(v2)).toList(); // (3)
+        List<Edge> e4 = g.V(v1).outE().where(inV().id().is(v2)).toList(); // (4)
         List<Edge> e5 = g.V(1).outE().where(inV().has(id, within(2,3))).toList(); // (5)
         List<Vertex> e6 = g.V(1).out().where(in().hasId(6)).toList(); // (6)
 

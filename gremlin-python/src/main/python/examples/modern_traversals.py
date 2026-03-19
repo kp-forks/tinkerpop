@@ -48,8 +48,8 @@ def main():
     e2 = g.V(1).both_e().where(__.other_v().has_id(2)).to_list()  # (2)
     v1 = g.V(1).next()
     v2 = g.V(2).next()
-    e3 = g.V(v1).both_e().where(__.other_v().is_(v2)).to_list()  # (3)
-    e4 = g.V(v1).out_e().where(__.in_v().is_(v2)).to_list()  # (4)
+    e3 = g.V(v1).both_e().where(__.other_v().id_().is_(v2)).to_list()  # (3)
+    e4 = g.V(v1).out_e().where(__.in_v().id_().is_(v2)).to_list()  # (4)
     e5 = g.V(1).out_e().where(__.in_v().has(T.id, P.within(2, 3))).to_list()  # (5)
     e6 = g.V(1).out().where(__.in_().has_id(6)).to_list()  # (6)
 

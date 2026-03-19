@@ -19,7 +19,7 @@ module example
 
 go 1.25
 
-require github.com/apache/tinkerpop/gremlin-go/v3 v3.7.4
+require github.com/apache/tinkerpop/gremlin-go/v3 v3.8.0
 
 replace github.com/apache/tinkerpop/gremlin-go/v3 => ../
 

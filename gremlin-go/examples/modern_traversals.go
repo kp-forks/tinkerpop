@@ -48,7 +48,7 @@ func main() {
 		return
 	}
 	defer driverRemoteConnection.Close()
-	g := gremlingo.Traversal_().WithRemote(driverRemoteConnection)
+	g := gremlingo.Traversal_().With(driverRemoteConnection)
 
 	/*
 	  This example requires the Modern toy graph to be preloaded upon launching the Gremlin server.
@@ -61,10 +61,10 @@ func main() {
 	v2, err := g.V(2).Next()
 	v1Vertex, err := v1.GetVertex()
 	v2Vertex, err := v2.GetVertex()
-	e3, err := g.V(v1Vertex).BothE().Where(__.OtherV().Is(v2Vertex)).ToList()   // (3)
-	e4, err := g.V(v1Vertex).OutE().Where(__.InV().Is(v2Vertex)).ToList()       // (4)
-	e5, err := g.V(1).OutE().Where(__.InV().Has(T.Id, P.Within(2, 3))).ToList() // (5)
-	e6, err := g.V(1).Out().Where(__.In().HasId(6)).ToList()                    // (6)
+	e3, err := g.V(v1Vertex).BothE().Where(__.OtherV().Id().Is(v2Vertex)).ToList() // (3)
+	e4, err := g.V(v1Vertex).OutE().Where(__.InV().Id().Is(v2Vertex)).ToList()     // (4)
+	e5, err := g.V(1).OutE().Where(__.InV().Has(T.Id, P.Within(2, 3))).ToList()    // (5)
+	e6, err := g.V(1).Out().Where(__.In().HasId(6)).ToList()                       // (6)
 
 	fmt.Println(e1)
 	fmt.Println(e2)

@@ -43,7 +43,7 @@ func main() {
 		return
 	}
 	defer driverRemoteConnection.Close()
-	g := gremlingo.Traversal_().WithRemote(driverRemoteConnection)
+	g := gremlingo.Traversal_().With(driverRemoteConnection)
 
 	// Basic Gremlin: adding and retrieving data
 	v1, err := g.AddV(vertexLabel).Property("name", "marko").Next()
