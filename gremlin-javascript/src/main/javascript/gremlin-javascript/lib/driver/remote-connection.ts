@@ -55,27 +55,11 @@ export abstract class RemoteConnection {
   abstract get isOpen(): boolean;
 
   /**
-   * Determines if the connection is already bound to a session. If so, this indicates that the
-   * <code>#createSession()</code> cannot be called so as to produce child sessions.
-   * @returns {boolean}
-   */
-  get isSessionBound(): boolean {
-    return false;
-  }
-
-  /**
    * Submits the <code>GremlinLang</code> provided and returns a <code>RemoteTraversal</code>.
    * @param {GremlinLang} gremlinLang
    * @returns {Promise} Returns a <code>Promise</code> that resolves to a <code>RemoteTraversal</code>.
    */
   abstract submit(gremlinLang: GremlinLang): Promise<RemoteTraversal>;
-
-  /**
-   * Create a new <code>RemoteConnection</code> that is bound to a session using the configuration from this one.
-   * If the connection is already session bound then this function should throw an exception.
-   * @returns {RemoteConnection}
-   */
-  abstract createSession(): RemoteConnection;
 
   /**
    * Submits a commit operation to the server and closes the connection.
@@ -101,7 +85,7 @@ export abstract class RemoteConnection {
  */
 export class RemoteTraversal extends Traversal {
   constructor(
-    public traversers: Traverser<any>[],
+    public results: Traverser<any>[],
     public sideEffects?: any[],
   ) {
     super(null, null);
@@ -114,21 +98,18 @@ export class RemoteStrategy extends TraversalStrategy {
    * @param {RemoteConnection} connection
    */
   constructor(public connection: RemoteConnection) {
-    // gave this a fqcn that has a local "js:" prefix since this strategy isn't sent to the server.
-    // this is a sort of local-only strategy that actually executes client side. not sure if this prefix is the
-    // right way to name this or not, but it should have a name to identify it.
-    super('js:RemoteStrategy');
+    super();
   }
 
   /** @override */
   apply(traversal: Traversal) {
-    if (traversal.traversers) {
+    if (traversal.results) {
       return Promise.resolve();
     }
 
     return this.connection.submit(traversal.getGremlinLang()).then(function (remoteTraversal: RemoteTraversal) {
       traversal.sideEffects = remoteTraversal.sideEffects;
-      traversal.traversers = remoteTraversal.traversers;
+      traversal.results = remoteTraversal.results;
     });
   }
 }

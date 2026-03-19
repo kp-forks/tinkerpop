@@ -17,13 +17,11 @@
  *  under the License.
  */
 
-import * as utils from '../utils.js';
 import Connection, { ConnectionOptions } from './connection.js';
 import { Readable } from 'stream';
+import {RequestMessage} from "./request-message.js";
 
 export type RequestOptions = {
-  requestId?: string;
-  session?: string;
   bindings?: any;
   language?: string;
   accept?: string;
@@ -31,7 +29,7 @@ export type RequestOptions = {
   batchSize?: number;
   userAgent?: string;
   materializeProperties?: string;
-  bulkResults?: boolean | string;
+  bulkResults?: boolean;
   params?: Record<string, any>;
 };
 
@@ -51,10 +49,10 @@ export default class Client {
    * @param {String|Array|Buffer} [options.cert] The certificate key.
    * @param {String} [options.mimeType] The mime type to use.
    * @param {String|Buffer} [options.pfx] The private key, certificate, and CA certs.
-   * @param {GraphSONReader} [options.reader] The reader to use.
+   * @param {GraphBinaryReader} [options.reader] The reader to use.
    * @param {Boolean} [options.rejectUnauthorized] Determines whether to verify or not the server certificate.
    * @param {String} [options.traversalSource] The traversal source. Defaults to: 'g'.
-   * @param {GraphSONWriter} [options.writer] The writer to use.
+   * @param {GraphBinaryWriter} [options.writer] The writer to use.
    * @param {Authenticator} [options.authenticator] The authentication handler to use.
    * @param {Object} [options.headers] An associative array containing the additional header key/values for the initial request.
    * @param {Boolean} [options.enableUserAgentOnConnect] Determines if a user agent will be sent during connection handshake. Defaults to: true
@@ -67,14 +65,6 @@ export default class Client {
     url: string,
     private readonly options: ClientOptions = {},
   ) {
-    if (this.options.processor === 'session') {
-      // compatibility with old 'session' processor setting
-      this.options.session = options.session || utils.getUuid();
-    }
-    if (this.options.session) {
-      // re-assign processor to 'session' when in session mode
-      this.options.processor = options.processor || 'session';
-    }
     this._connection = new Connection(url, options);
   }
 
@@ -97,9 +87,13 @@ export default class Client {
   /**
    * Configuration specific to the current request.
    * @typedef {Object} RequestOptions
-   * @property {String} requestId - User specified request identifier which must be a UUID.
-   * @property {Number} batchSize - Indicates whether the Power component is present.
-   * @property {String} userAgent - The size in which the result of a request is to be 'batched' back to the client
+   * @property {any} bindings - The parameter bindings to apply to the script.
+   * @property {String} language - The language of the script to execute. Defaults to 'gremlin-lang'.
+   * @property {String} accept - The MIME type expected in the response.
+   * @property {Boolean} bulkResults - Indicates whether results should be returned in bulk format.
+   * @property {Object} params - Additional parameters to include with the request.
+   * @property {Number} batchSize - The size in which the result of a request is to be 'batched' back to the client.
+   * @property {String} userAgent - The user agent string to send with the request.
    * @property {Number} evaluationTimeout - The timeout for the evaluation of the request.
    * @property {String} materializeProperties - Indicates whether element properties should be returned or not.
    */
@@ -110,31 +104,31 @@ export default class Client {
    * @param {Object|null} [bindings] The script bindings, if any.
    * @param {RequestOptions} [requestOptions] Configuration specific to the current request.
    * @returns {Promise}
-   */
+   */ //TODO:: tighten return type to Promise<ResultSet>
   submit(message: string, bindings: any | null, requestOptions?: RequestOptions): Promise<any> {
-    const requestIdOverride = requestOptions && requestOptions.requestId;
-    if (requestIdOverride) {
-      delete requestOptions['requestId'];
-    }
+      const requestBuilder = RequestMessage.build(message)
+          .addG(this.options.traversalSource || 'g')
 
-    const args = Object.assign(
-      {
-        gremlin: message,
-        aliases: { g: this.options.traversalSource || 'g' },
-      },
-      requestOptions,
-    );
+      if (requestOptions?.language) {
+          requestBuilder.addLanguage(requestOptions.language);
+      }
+      if (requestOptions?.bindings) {
+          requestBuilder.addBindings(requestOptions.bindings);
+      }
+      if (bindings) {
+          requestBuilder.addBindings(bindings);
+      }
+      if (requestOptions?.materializeProperties) {
+        requestBuilder.addMaterializeProperties(requestOptions.materializeProperties);
+      }
+      if (requestOptions?.evaluationTimeout) {
+          requestBuilder.addTimeoutMillis(requestOptions.evaluationTimeout);
+      }
+      if (requestOptions?.bulkResults) {
+          requestBuilder.addBulkResults(requestOptions.bulkResults);
+      }
 
-    args['language'] = 'gremlin-lang';
-    args['accept'] = this._connection.mimeType;
-
-    if (bindings) args['bindings'] = bindings;
-
-    if (this.options.session && this.options.processor === 'session') {
-      args['session'] = this.options.session;
-      return this._connection.submit('session', 'eval', args, requestIdOverride);
-    }
-    return this._connection.submit(this.options.processor || '', 'eval', args, requestIdOverride);
+      return this._connection.submit(requestBuilder.create());
   }
 
   /**
@@ -144,30 +138,9 @@ export default class Client {
    * @param {RequestOptions} [requestOptions] Configuration specific to the current request.
    * @returns {ReadableStream}
    */
+  //TODO:: Update stream() to mirror submit()
   stream(message: string, bindings: any, requestOptions?: RequestOptions): Readable {
-    const requestIdOverride = requestOptions && requestOptions.requestId;
-    if (requestIdOverride) {
-      delete requestOptions['requestId'];
-    }
-
-    const args = Object.assign(
-      {
-        gremlin: message,
-        aliases: { g: this.options.traversalSource || 'g' },
-      },
-      requestOptions,
-    );
-
-    args['language'] = 'gremlin-lang';
-    args['accept'] = this._connection.mimeType;
-
-    if (bindings) args['bindings'] = bindings;
-
-    if (this.options.session && this.options.processor === 'session') {
-      args['session'] = this.options.session;
-      return this._connection.stream('session', 'eval', args, requestIdOverride);
-    }
-    return this._connection.stream(this.options.processor || '', 'eval', args, requestIdOverride);
+      throw new Error("Stream not yet implemented");
   }
 
   /**
@@ -176,10 +149,6 @@ export default class Client {
    * @returns {Promise}
    */
   close(): Promise<void> {
-    if (this.options.session && this.options.processor === 'session') {
-      const args = { session: this.options.session };
-      return this._connection.submit(this.options.processor, 'close', args, null).then(() => this._connection.close());
-    }
     return this._connection.close();
   }
 
