@@ -32,16 +32,15 @@
  */
 
 import { Effect, Layer, Option, Redacted, Ref, pipe } from 'effect';
-import gremlin from 'gremlin';
+import { driver, process } from 'gremlin';
 import { AppConfig } from '../config.js';
 import { Errors } from '../errors.js';
 import { GremlinClient } from './client.js';
 import type { ConnectionState } from './types.js';
 import type { GremlinConnectionError } from '../errors.js';
 
-const { PlainTextSaslAuthenticator } = gremlin.driver.auth;
-const { Client, DriverRemoteConnection } = gremlin.driver;
-const { AnonymousTraversalSource } = gremlin.process;
+const { Client, DriverRemoteConnection } = driver;
+const { AnonymousTraversalSource } = process;
 
 const NO_ENDPOINT_MSG =
   'No Gremlin Server configured. Set GREMLIN_MCP_ENDPOINT to enable graph operations.';
@@ -83,16 +82,21 @@ const createConnection = (
       traversalSource,
     });
 
-    const authenticator = Option.map(
-      authenticatorInput,
-      ({ username, password }) => new PlainTextSaslAuthenticator(username, password)
-    );
+    const headers = Option.match(authenticatorInput, {
+      onNone: () => undefined,
+      onSome: ({ username, password }) => {
+        const credentials = `${username}:${password}`;
+        return {
+          Authorization: `Basic ${Buffer.from(credentials).toString('base64')}`,
+        };
+      },
+    });
 
     const connection = yield* Effect.try({
       try: () =>
         new DriverRemoteConnection(url, {
           traversalSource,
-          authenticator: Option.getOrUndefined(authenticator),
+          headers,
         }),
       catch: error => Errors.connection('Failed to create remote connection', { error }),
     });
@@ -100,7 +104,7 @@ const createConnection = (
     const g = AnonymousTraversalSource.traversal().withRemote(connection);
     const client = new Client(url, {
       traversalSource,
-      authenticator: Option.getOrUndefined(authenticator),
+      headers,
     });
 
     // Verify the server is reachable before caching

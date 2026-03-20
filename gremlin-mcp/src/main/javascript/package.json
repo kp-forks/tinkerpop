@@ -47,7 +47,6 @@
     "@effect/platform": "^0.90.6",
     "@effect/platform-node": "^0.96.0",
     "@modelcontextprotocol/sdk": "^1.17.4",
-    "@types/gremlin": "^3.6.7",
     "effect": "^3.17.9",
     "gremlin": "file:../../../../gremlin-javascript/src/main/javascript/gremlin-javascript",
     "winston": "^3.17.0",
