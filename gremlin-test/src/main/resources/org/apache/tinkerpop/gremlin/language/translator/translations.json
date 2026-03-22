@@ -5972,7 +5972,7 @@
         ]
     },
     {
-        "scenario": "g_V_coinX1X",
+        "scenario": "g_V_coinX1_0X",
         "traversals": [
             {
                 "original": "g.V().coin(1.0)",
@@ -5985,6 +5985,23 @@
                 "java": "g.V().coin(1.0)",
                 "javascript": "g.V().coin(1.0)",
                 "python": "g.V().coin(1.0)"
+            }
+        ]
+    },
+    {
+        "scenario": "g_V_coinX1X",
+        "traversals": [
+            {
+                "original": "g.V().coin(1)",
+                "language": "g.V().coin(1)",
+                "canonical": "g.V().coin(1)",
+                "anonymized": "g.V().coin(number0)",
+                "dotnet": "g.V().Coin(1)",
+                "go": "g.V().Coin(1)",
+                "groovy": "g.V().coin(1)",
+                "java": "g.V().coin(1)",
+                "javascript": "g.V().coin(1)",
+                "python": "g.V().coin(1)"
             }
         ]
     },
@@ -41295,6 +41312,57 @@
                 "java": "g.V().hasLabel(\"person\").local(__.aggregate(\"a\")).outE().order().by(\"weight\").limit(1).inV().local(__.aggregate(\"a\")).cap(\"a\")",
                 "javascript": "g.V().hasLabel(\"person\").local(__.aggregate(\"a\")).outE().order().by(\"weight\").limit(1).inV().local(__.aggregate(\"a\")).cap(\"a\")",
                 "python": "g.V().has_label('person').local(__.aggregate('a')).out_e().order().by('weight').limit(1).in_v().local(__.aggregate('a')).cap('a')"
+            }
+        ]
+    },
+    {
+        "scenario": "g_V_repeatXaggregateXaXX_timesX2X_capXaX_unfold",
+        "traversals": [
+            {
+                "original": "g.V().repeat(__.aggregate(\"a\")).times(2).cap(\"a\").unfold()",
+                "language": "g.V().repeat(__.aggregate(\"a\")).times(2).cap(\"a\").unfold()",
+                "canonical": "g.V().repeat(__.aggregate(\"a\")).times(2).cap(\"a\").unfold()",
+                "anonymized": "g.V().repeat(__.aggregate(string0)).times(number0).cap(string0).unfold()",
+                "dotnet": "g.V().Repeat(__.Aggregate(\"a\")).Times(2).Cap<object>(\"a\").Unfold<object>()",
+                "go": "g.V().Repeat(gremlingo.T__.Aggregate(\"a\")).Times(2).Cap(\"a\").Unfold()",
+                "groovy": "g.V().repeat(__.aggregate(\"a\")).times(2).cap(\"a\").unfold()",
+                "java": "g.V().repeat(__.aggregate(\"a\")).times(2).cap(\"a\").unfold()",
+                "javascript": "g.V().repeat(__.aggregate(\"a\")).times(2).cap(\"a\").unfold()",
+                "python": "g.V().repeat(__.aggregate('a')).times(2).cap('a').unfold()"
+            }
+        ]
+    },
+    {
+        "scenario": "g_V_aggregateXaX_capXaX_unfold_both",
+        "traversals": [
+            {
+                "original": "g.V().aggregate(\"a\").cap(\"a\").unfold().both()",
+                "language": "g.V().aggregate(\"a\").cap(\"a\").unfold().both()",
+                "canonical": "g.V().aggregate(\"a\").cap(\"a\").unfold().both()",
+                "anonymized": "g.V().aggregate(string0).cap(string0).unfold().both()",
+                "dotnet": "g.V().Aggregate(\"a\").Cap<object>(\"a\").Unfold<object>().Both()",
+                "go": "g.V().Aggregate(\"a\").Cap(\"a\").Unfold().Both()",
+                "groovy": "g.V().aggregate(\"a\").cap(\"a\").unfold().both()",
+                "java": "g.V().aggregate(\"a\").cap(\"a\").unfold().both()",
+                "javascript": "g.V().aggregate(\"a\").cap(\"a\").unfold().both()",
+                "python": "g.V().aggregate('a').cap('a').unfold().both()"
+            }
+        ]
+    },
+    {
+        "scenario": "g_V_aggregateXaX_capXaX_unfold_barrier_both",
+        "traversals": [
+            {
+                "original": "g.V().aggregate(\"a\").cap(\"a\").unfold().barrier().both()",
+                "language": "g.V().aggregate(\"a\").cap(\"a\").unfold().barrier().both()",
+                "canonical": "g.V().aggregate(\"a\").cap(\"a\").unfold().barrier().both()",
+                "anonymized": "g.V().aggregate(string0).cap(string0).unfold().barrier().both()",
+                "dotnet": "g.V().Aggregate(\"a\").Cap<object>(\"a\").Unfold<object>().Barrier().Both()",
+                "go": "g.V().Aggregate(\"a\").Cap(\"a\").Unfold().Barrier().Both()",
+                "groovy": "g.V().aggregate(\"a\").cap(\"a\").unfold().barrier().both()",
+                "java": "g.V().aggregate(\"a\").cap(\"a\").unfold().barrier().both()",
+                "javascript": "g.V().aggregate(\"a\").cap(\"a\").unfold().barrier().both()",
+                "python": "g.V().aggregate('a').cap('a').unfold().barrier().both()"
             }
         ]
     },
