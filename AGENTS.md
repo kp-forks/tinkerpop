@@ -148,7 +148,7 @@ Agents should follow these conventions when generating or editing code and tests
 
 ### 6.1 Code style
 
-- All files should include the Apache Software Foundation license header.
+- All files should include the Apache Software Foundation license header - canonical text for the header is at `bin/asf-license-header.txt`.
 - Do **not** use import wildcards (for example, avoid `import org.apache.tinkerpop.gremlin.structure.*`); prefer explicit imports.
 - Respect existing naming patterns and package organization.
 - Define variables as `final` whenever possible, except for loop variables.
