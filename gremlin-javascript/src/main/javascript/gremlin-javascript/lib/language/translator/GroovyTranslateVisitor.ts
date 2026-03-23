@@ -134,7 +134,7 @@ export default class GroovyTranslateVisitor extends TranslateVisitor {
 
     visitStringLiteral(ctx: any): void {
         // Preserve original quote style and escape Groovy GString interpolation
-        this.sb.push(ctx.getText().replace(/\$/g, '\\$'));
+        this.sb.push(ctx.getText().replace(/\$/g, () => '\\$'));
     }
 
     visitStringNullableLiteral(ctx: any): void {
@@ -142,7 +142,7 @@ export default class GroovyTranslateVisitor extends TranslateVisitor {
             this.sb.push('null');
         } else {
             // Preserve original quote style and escape Groovy GString interpolation
-            this.sb.push(ctx.getText().replace(/\$/g, '\\$'));
+            this.sb.push(ctx.getText().replace(/\$/g, () => '\\$'));
         }
     }
 
