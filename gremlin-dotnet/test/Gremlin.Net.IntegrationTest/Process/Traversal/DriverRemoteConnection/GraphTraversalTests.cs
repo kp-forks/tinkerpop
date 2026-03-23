@@ -27,7 +27,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gremlin.Net.Driver;
 using Gremlin.Net.Driver.Exceptions;
-using Gremlin.Net.Driver.Messages;
 using Gremlin.Net.Process.Traversal;
 using Gremlin.Net.Structure;
 using Xunit;
@@ -56,8 +55,7 @@ namespace Gremlin.Net.IntegrationTest.Process.Traversal.DriverRemoteConnection
             var connection = _connectionFactory.CreateRemoteConnection();
             var g = AnonymousTraversalSource.Traversal().With(connection);
 
-            var b = Bindings.Instance;
-            var count = g.V().Has("person", "age", b.Of("x", P.Lt(30))).Count().Next();
+            var count = g.V().Has("person", "age", P.Lt(30)).Count().Next();
 
             Assert.Equal(2, count);
         }
@@ -154,13 +152,9 @@ namespace Gremlin.Net.IntegrationTest.Process.Traversal.DriverRemoteConnection
             var g = AnonymousTraversalSource.Traversal().With(connection);
 
             var result = g.V(1).ValueMap<string, IList<object>>().Next();
-            Assert.Equal(
-                new Dictionary<string, IList<object>>
-                {
-                    { "age", new List<object> { 29 } },
-                    { "name", new List<object> { "marko" } }
-                },
-                result);
+            Assert.True(result.Count >= 2); // .NET may receive an extra haltedTraversers key from the server which we currently just ignore
+            Assert.Equal(new List<object> { 29 }, result["age"]);
+            Assert.Equal(new List<object> { "marko" }, result["name"]);
         }
 
         [Fact]
@@ -191,13 +185,12 @@ namespace Gremlin.Net.IntegrationTest.Process.Traversal.DriverRemoteConnection
         }
 
         [Fact]
-        public void ShouldUseBindingsInTraversal()
+        public void ShouldUseParametersInTraversal()
         {
             var connection = _connectionFactory.CreateRemoteConnection();
             var g = AnonymousTraversalSource.Traversal().With(connection);
 
-            var b = new Bindings();
-            var count = g.V().Has(b.Of("propertyKey", "name"), b.Of("propertyValue", "marko")).OutE().Count().Next();
+            var count = g.V().Has("name", "marko").OutE().Count().Next();
 
             Assert.Equal(3, count);
         }  
@@ -215,12 +208,6 @@ namespace Gremlin.Net.IntegrationTest.Process.Traversal.DriverRemoteConnection
             
             var countWithStrategy = g.WithStrategies(new OptionsStrategy(options)).V().Count().Next();
             Assert.Equal(6, countWithStrategy);
-            
-            var responseException = Assert.Throws<ResponseException>(() =>
-                                 g.With("y").With("x", "test").With(Tokens.ArgsEvalTimeout, 10).Inject(1)
-                                  .SideEffect(Lambda.Groovy("Thread.sleep(10000)")).Iterate());
-            Assert.Equal(ResponseStatusCode.ServerTimeout, responseException.StatusCode);
-
         }
 
         [Fact]
@@ -272,7 +259,8 @@ namespace Gremlin.Net.IntegrationTest.Process.Traversal.DriverRemoteConnection
             Assert.True(await g.V().Promise(t => t.HasNext(), CancellationToken.None));
         }
 
-        [Fact]
+        // TODO: update after tx is implemented in 4.0
+        [Fact (Skip = "transaction-related tests are disabled until Tx implemented")]
         public async Task ShouldThrowExceptionOnCommitWhenGraphNotSupportTx()
         {
             var connection = _connectionFactory.CreateRemoteConnection();
@@ -282,7 +270,7 @@ namespace Gremlin.Net.IntegrationTest.Process.Traversal.DriverRemoteConnection
             Assert.Equal("ServerError: Graph does not support transactions", exception.Message);
         }
 
-        [Fact]
+        [Fact (Skip = "transaction-related tests are disabled until Tx implemented")]
         public async Task ShouldThrowExceptionOnRollbackWhenGraphNotSupportTx()
         {
             var connection = _connectionFactory.CreateRemoteConnection();

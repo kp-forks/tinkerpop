@@ -34,6 +34,13 @@ namespace Gremlin.Net.Driver
     public interface IMessageSerializer
     {
         /// <summary>
+        ///     Gets the MIME type produced by this serializer (e.g.
+        ///     <c>"application/vnd.graphbinary-v4.0"</c>). Used by the driver to set
+        ///     <c>Content-Type</c> and <c>Accept</c> headers automatically.
+        /// </summary>
+        string MimeType { get; }
+
+        /// <summary>
         ///     Serializes a <see cref="RequestMessage"/>.
         /// </summary>
         /// <param name="requestMessage">The <see cref="RequestMessage"/> to serialize.</param>
@@ -48,7 +55,7 @@ namespace Gremlin.Net.Driver
         /// <param name="message">The serialized message to deserialize.</param>
         /// <param name="cancellationToken">The token to cancel the operation. The default value is None.</param>
         /// <returns>The deserialized <see cref="ResponseMessage{T}"/>.</returns>
-        Task<ResponseMessage<List<object>>?> DeserializeMessageAsync(byte[] message,
+        Task<ResponseMessage<List<object>>> DeserializeMessageAsync(byte[] message,
             CancellationToken cancellationToken = default);
     }
 }

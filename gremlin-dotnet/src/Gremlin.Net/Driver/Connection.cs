@@ -22,306 +22,246 @@
 #endregion
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Text;
+using System.IO;
+using System.IO.Compression;
+using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using Gremlin.Net.Driver.Messages;
 using Gremlin.Net.Process;
+using Gremlin.Net.Structure.IO;
 
 namespace Gremlin.Net.Driver
 {
-    internal interface IResponseHandlerForSingleRequestMessage
+    /// <summary>
+    ///     HTTP-based connection that sends requests via HTTP POST to Gremlin Server.
+    /// </summary>
+    internal class Connection : IDisposable
     {
-        void HandleReceived(ResponseMessage<List<object>> received);
-        void Finalize(Dictionary<string, object> statusAttributes);
-        void HandleFailure(Exception objException);
-        void Cancel();
-    }
-
-    internal class Connection : IConnection
-    {
-        private readonly IMessageSerializer _messageSerializer;
+        private readonly HttpClient _httpClient;
         private readonly Uri _uri;
-        private readonly IWebSocketConnection _webSocketConnection;
-        private readonly string? _username;
-        private readonly string? _password;
-        private readonly string? _sessionId;
-        private readonly bool _sessionEnabled;
+        private readonly IMessageSerializer? _requestSerializer;
+        private readonly IMessageSerializer _responseSerializer;
+        private readonly ConnectionSettings _settings;
+        private readonly IReadOnlyList<Func<HttpRequestContext, Task>> _interceptors;
 
-        private readonly ConcurrentQueue<(RequestMessage msg, CancellationToken cancellationToken)> _writeQueue = new();
-
-        private readonly ConcurrentDictionary<Guid, IResponseHandlerForSingleRequestMessage> _callbackByRequestId =
-            new();
-
-        private readonly ConcurrentDictionary<Guid, CancellationTokenRegistration> _cancellationByRequestId = new();
-        private int _connectionState = 0;
-        private int _writeInProgress = 0;
-        private const int Closed = 1;
-
-        public Connection(IWebSocketConnection webSocketConnection, Uri uri, string? username, string? password,
-            IMessageSerializer messageSerializer, string? sessionId)
+        /// <summary>
+        ///     Creates a new HTTP connection. The <see cref="HttpClient"/> is backed by
+        ///     SocketsHttpHandler which manages its own TCP connection pool internally,
+        ///     so a single <see cref="Connection"/> instance handles concurrent requests efficiently.
+        /// </summary>
+        /// <param name="uri">The Gremlin Server URI.</param>
+        /// <param name="requestSerializer">
+        ///     The serializer for outgoing requests. When non-null, the request body is serialized
+        ///     to <c>byte[]</c> before interceptors run and the <c>Content-Type</c> header is set
+        ///     automatically. When <c>null</c>, the body is passed as a <see cref="RequestMessage"/>
+        ///     and an interceptor is responsible for serializing it to <c>byte[]</c> and setting
+        ///     <c>Content-Type</c>. This follows the Python driver's <c>request_serializer=None</c>
+        ///     pattern.
+        /// </param>
+        /// <param name="responseSerializer">The serializer for incoming responses (always required).</param>
+        /// <param name="settings">Connection settings.</param>
+        /// <param name="interceptors">Optional request interceptors.</param>
+        public Connection(Uri uri, IMessageSerializer? requestSerializer,
+            IMessageSerializer responseSerializer,
+            ConnectionSettings settings,
+            IReadOnlyList<Func<HttpRequestContext, Task>>? interceptors = null)
         {
             _uri = uri;
-            _username = username;
-            _password = password;
-            _sessionId = sessionId;
-            if (!string.IsNullOrEmpty(sessionId))
+            _requestSerializer = requestSerializer;
+            _responseSerializer = responseSerializer;
+            _settings = settings;
+            _interceptors = interceptors ?? Array.Empty<Func<HttpRequestContext, Task>>();
+
+#if NET6_0_OR_GREATER
+            var handler = new SocketsHttpHandler
             {
-                _sessionEnabled = true;
+                PooledConnectionIdleTimeout = settings.IdleConnectionTimeout,
+                MaxConnectionsPerServer = settings.MaxConnectionsPerServer,
+                ConnectTimeout = settings.ConnectionTimeout,
+                KeepAlivePingTimeout = settings.KeepAliveInterval,
+            };
+            if (settings.SkipCertificateValidation)
+            {
+                handler.SslOptions = new System.Net.Security.SslClientAuthenticationOptions
+                {
+                    RemoteCertificateValidationCallback = (_, _, _, _) => true,
+                };
             }
-            _messageSerializer = messageSerializer;
-            _webSocketConnection = webSocketConnection;
+            _httpClient = new HttpClient(handler);
+#else
+            _httpClient = new HttpClient();
+            _httpClient.Timeout = settings.ConnectionTimeout;
+#endif
         }
 
-        public async Task ConnectAsync(CancellationToken cancellationToken)
+        /// <summary>
+        ///     Constructor that accepts a pre-configured HttpClient (for testing).
+        /// </summary>
+        internal Connection(Uri uri, IMessageSerializer? requestSerializer,
+            IMessageSerializer responseSerializer,
+            ConnectionSettings settings, HttpClient httpClient,
+            IReadOnlyList<Func<HttpRequestContext, Task>>? interceptors = null)
         {
-            await _webSocketConnection.ConnectAsync(_uri, cancellationToken).ConfigureAwait(false);
-            BeginReceiving();
+            _uri = uri;
+            _requestSerializer = requestSerializer;
+            _responseSerializer = responseSerializer;
+            _settings = settings;
+            _httpClient = httpClient;
+            _interceptors = interceptors ?? Array.Empty<Func<HttpRequestContext, Task>>();
         }
 
-        public int NrRequestsInFlight => _callbackByRequestId.Count;
-
-        public bool IsOpen => _webSocketConnection.IsOpen && Volatile.Read(ref _connectionState) != Closed;
-
-        public Task<ResultSet<T>> SubmitAsync<T>(RequestMessage requestMessage, CancellationToken cancellationToken)
+        public async Task<ResultSet<T>> SubmitAsync<T>(RequestMessage requestMessage,
+            CancellationToken cancellationToken = default)
         {
-            var receiver = new ResponseHandlerForSingleRequestMessage<T>();
-            _callbackByRequestId.GetOrAdd(requestMessage.RequestId, receiver);
+            // Build HttpRequestContext with default headers
+            var headers = new Dictionary<string, string>();
+            headers["Accept"] = _responseSerializer.MimeType;
 
-            _cancellationByRequestId.GetOrAdd(requestMessage.RequestId, cancellationToken.Register(() =>
+            if (_settings.EnableCompression)
             {
-                if (_callbackByRequestId.TryRemove(requestMessage.RequestId, out var responseHandler))
-                {
-                    responseHandler.Cancel();
-                }
-            }));
-            _writeQueue.Enqueue((requestMessage, cancellationToken));
-            BeginSendingMessages();
-            return receiver.Result;
-        }
-
-        private void BeginReceiving()
-        {
-            var state = Volatile.Read(ref _connectionState);
-            if (state == Closed) return;
-            ReceiveMessagesAsync().Forget();
-        }
-
-        private async Task ReceiveMessagesAsync()
-        {
-            while (true)
-            {
-                try
-                {
-                    var received = await _webSocketConnection.ReceiveMessageAsync().ConfigureAwait(false);
-                    await HandleReceivedAsync(received).ConfigureAwait(false);
-                }
-                catch (Exception e)
-                {
-                    await CloseConnectionBecauseOfFailureAsync(e).ConfigureAwait(false);
-                    break;
-                }
+                headers["Accept-Encoding"] = "deflate";
             }
-        }
 
-        private async Task HandleReceivedAsync(byte[] received)
-        {
-            var receivedMsg = await _messageSerializer.DeserializeMessageAsync(received).ConfigureAwait(false);
-            if (receivedMsg == null)
+            if (_settings.EnableUserAgentOnConnect)
+            {
+                headers["User-Agent"] = Utils.UserAgent;
+            }
+
+            if (_settings.BulkResults)
+            {
+                headers["bulkResults"] = "true";
+            }
+
+            object body;
+            if (_requestSerializer != null)
+            {
+                // Default path: serialize before interceptors
+                var requestBytes = await _requestSerializer.SerializeMessageAsync(requestMessage, cancellationToken)
+                    .ConfigureAwait(false);
+                body = requestBytes;
+                headers["Content-Type"] = _requestSerializer.MimeType;
+            }
+            else
+            {
+                // Interceptor-managed path: body is RequestMessage, interceptor must serialize
+                body = requestMessage;
+            }
+
+            var context = new HttpRequestContext("POST", _uri, headers, body);
+
+            // Apply interceptors in order
+            foreach (var interceptor in _interceptors)
+            {
+                await interceptor(context).ConfigureAwait(false);
+            }
+
+            // Convert HttpRequestContext to HttpRequestMessage
+            using var httpRequest = new HttpRequestMessage(new HttpMethod(context.Method), context.Uri);
+
+            if (context.Body is byte[] bodyBytes)
+            {
+                httpRequest.Content = new ByteArrayContent(bodyBytes);
+            }
+            else if (context.Body is HttpContent httpContent)
+            {
+                httpRequest.Content = httpContent;
+            }
+            else
             {
                 throw new InvalidOperationException(
-                    "Received data deserialized into null object message. Cannot operate on it.");
+                    "Request body must be byte[] or HttpContent after all interceptors complete, " +
+                    "but found " + (context.Body?.GetType().Name ?? "null") +
+                    ". Either provide a requestSerializer or add an interceptor " +
+                    "that serializes the RequestMessage.");
             }
 
+            foreach (var header in context.Headers)
+            {
+                // Content-Type must be set on the content headers, not the request headers
+                if (string.Equals(header.Key, "Content-Type", StringComparison.OrdinalIgnoreCase))
+                {
+                    httpRequest.Content.Headers.ContentType = new MediaTypeHeaderValue(header.Value);
+                }
+                else
+                {
+                    httpRequest.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                }
+            }
+
+            using var response = await _httpClient.SendAsync(httpRequest, cancellationToken)
+                .ConfigureAwait(false);
+
+            // If the HTTP status indicates an error and the response is not GraphBinary,
+            // attempt to read the body as a text error message. The server may respond with
+            // a JSON body containing an error field, or plain text. Only when the Content-Type
+            // is GraphBinary do we fall through to normal deserialization so the status footer
+            // in the GB4 response can surface the application-level error.
+            if (!response.IsSuccessStatusCode &&
+                response.Content.Headers.ContentType?.MediaType != _responseSerializer.MimeType)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+                // Try to extract the "message" field from a JSON error response
+                var errorMessage = TryExtractJsonError(errorBody)
+                    ?? $"Gremlin Server returned HTTP {(int)response.StatusCode}: {errorBody}";
+
+                throw new HttpRequestException(errorMessage);
+            }
+
+            var responseBytes = await ReadResponseBytesAsync(response).ConfigureAwait(false);
+
+            var responseMessage = await _responseSerializer.DeserializeMessageAsync(responseBytes, cancellationToken)
+                .ConfigureAwait(false);
+
+            return BuildResultSet<T>(responseMessage);
+        }
+
+        private static async Task<byte[]> ReadResponseBytesAsync(HttpResponseMessage response)
+        {
+            using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+            if (response.Content.Headers.ContentEncoding.Contains("deflate"))
+            {
+                using var deflateStream = new DeflateStream(stream, CompressionMode.Decompress);
+                using var ms = new MemoryStream();
+                await deflateStream.CopyToAsync(ms).ConfigureAwait(false);
+                return ms.ToArray();
+            }
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream).ConfigureAwait(false);
+            return memoryStream.ToArray();
+        }
+
+        private static ResultSet<T> BuildResultSet<T>(ResponseMessage<List<object>> responseMessage)
+        {
+            return new ResultSet<T>(
+                responseMessage.Result.Cast<T>().ToList(),
+                new Dictionary<string, object>());
+        }
+
+        /// <summary>
+        ///     Attempts to extract an error message from a JSON response body.
+        ///     The server sometimes responds with a JSON object containing a "message" field
+        ///     even when it cannot produce a GraphBinary response.
+        /// </summary>
+        private static string? TryExtractJsonError(string body)
+        {
             try
             {
-                HandleReceivedMessage(receivedMsg);
-            }
-            catch (Exception e)
-            {
-                if (receivedMsg!.RequestId != null)
+                using var doc = System.Text.Json.JsonDocument.Parse(body);
+                if (doc.RootElement.TryGetProperty("message", out var messageProp))
                 {
-                    if(_callbackByRequestId.TryRemove(receivedMsg.RequestId.Value, out var responseHandler))
-                    {
-                        responseHandler?.HandleFailure(e);
-                        
-                    }
-                    if (_cancellationByRequestId.TryRemove(receivedMsg.RequestId.Value, out var cancellation))
-                    {
-                        cancellation.Dispose();
-                    }
+                    return messageProp.GetString();
                 }
             }
-        }
-
-        private void HandleReceivedMessage(ResponseMessage<List<object>> receivedMsg)
-        {
-            var status = receivedMsg.Status;
-            status.ThrowIfStatusIndicatesError();
-
-            if (status.Code == ResponseStatusCode.Authenticate)
+            catch
             {
-                Authenticate();
-                return;
+                // Not valid JSON — fall through to raw body
             }
-
-            if (receivedMsg.RequestId == null) return;
-
-            _callbackByRequestId.TryGetValue(receivedMsg.RequestId.Value, out var responseHandler);
-            if (status.Code != ResponseStatusCode.NoContent)
-            {
-                responseHandler?.HandleReceived(receivedMsg);
-            }
-
-            if (status.Code == ResponseStatusCode.Success || status.Code == ResponseStatusCode.NoContent)
-            {
-                if (_cancellationByRequestId.TryRemove(receivedMsg.RequestId.Value, out var cancellation))
-                {
-                    cancellation.Dispose();
-                }
-                responseHandler?.Finalize(status.Attributes);
-                _callbackByRequestId.TryRemove(receivedMsg.RequestId.Value, out _);
-            }
-        }
-
-        private void Authenticate()
-        {
-            if (string.IsNullOrEmpty(_username) || string.IsNullOrEmpty(_password))
-                throw new InvalidOperationException(
-                    $"The Gremlin Server requires authentication, but no credentials are specified - username: {_username}, password: {_password}.");
-
-            var message = RequestMessage.Build(Tokens.OpsAuthentication).Processor(Tokens.ProcessorTraversal)
-                .AddArgument(Tokens.ArgsSasl, SaslArgument()).Create();
-
-            _writeQueue.Enqueue((message, CancellationToken.None));
-            BeginSendingMessages();
-        }
-
-        private string SaslArgument()
-        {
-            var auth = $"\0{_username}\0{_password}";
-            var authBytes = Encoding.UTF8.GetBytes(auth);
-            return Convert.ToBase64String(authBytes);
-        }
-
-        private void BeginSendingMessages()
-        {
-            if (Interlocked.CompareExchange(ref _writeInProgress, 1, 0) != 0)
-                return;
-            SendMessagesFromQueueAsync().Forget();
-        }
-
-        private async Task SendMessagesFromQueueAsync()
-        {
-            while (_writeQueue.TryDequeue(out var msg))
-            {
-                try
-                {
-                    await SendMessageAsync(msg.msg, msg.cancellationToken).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException e) when (msg.cancellationToken == e.CancellationToken)
-                {
-                    // Send was cancelled for this message -> silently catch as we want to continue sending from this
-                    //  connection. The task responsible for submitting this message will be cancelled by the
-                    //  `ResponseHandlerForSingleRequestMessage`.
-                }
-                catch (Exception e)
-                {
-                    await CloseConnectionBecauseOfFailureAsync(e).ConfigureAwait(false);
-                    break;
-                }
-            }
-            Interlocked.CompareExchange(ref _writeInProgress, 0, 1);
-
-            // Since the loop ended and the write in progress was set to 0
-            // a new item could have been added, write queue can contain items at this time
-            if (!_writeQueue.IsEmpty && Interlocked.CompareExchange(ref _writeInProgress, 1, 0) == 0)
-            {
-                await SendMessagesFromQueueAsync().ConfigureAwait(false);
-            }
-        }
-
-        private async Task CloseConnectionBecauseOfFailureAsync(Exception exception)
-        {
-            EmptyWriteQueue();
-            await CloseAsync().ConfigureAwait(false);
-            NotifyAboutConnectionFailure(exception);
-        }
-
-        private void EmptyWriteQueue()
-        {
-            while (_writeQueue.TryDequeue(out _))
-            {
-            }
-        }
-
-        private void NotifyAboutConnectionFailure(Exception exception)
-        {
-            foreach (var cb in _callbackByRequestId.Values)
-            {
-                cb.HandleFailure(exception);
-            }
-            _callbackByRequestId.Clear();
-            DisposeCancellationRegistrations();
-        }
-
-        private async Task SendMessageAsync(RequestMessage message, CancellationToken cancellationToken)
-        {
-            if (_sessionEnabled)
-            {
-                message = RebuildSessionMessage(message);
-            }
-
-            var serializedMsg = await _messageSerializer.SerializeMessageAsync(message, cancellationToken)
-                .ConfigureAwait(false);
-#if NET6_0_OR_GREATER
-            if (message.Processor == Tokens.OpsAuthentication)
-            {
-                // Don't compress a message that contains credentials to prevent attacks like CRIME or BREACH
-                await _webSocketConnection.SendMessageUncompressedAsync(serializedMsg, cancellationToken).ConfigureAwait(false);
-                return;
-            }
-#endif
-            await _webSocketConnection.SendMessageAsync(serializedMsg, cancellationToken).ConfigureAwait(false);
-        }
-
-        private RequestMessage RebuildSessionMessage(RequestMessage message)
-        {
-            if (message.Processor == Tokens.OpsAuthentication)
-            {
-                return message;
-            }
-
-            var msgBuilder = RequestMessage.Build(message.Operation)
-              .OverrideRequestId(message.RequestId).Processor(Tokens.ProcessorSession);
-            foreach(var kv in message.Arguments)
-            {
-                msgBuilder.AddArgument(kv.Key, kv.Value);
-            }
-            msgBuilder.AddArgument(Tokens.ArgsSession, _sessionId!);
-            return msgBuilder.Create();
-        }
-
-        public async Task CloseAsync()
-        {
-            Interlocked.Exchange(ref _connectionState, Closed);
-
-            if (_sessionEnabled)
-            {
-                await CloseSession().ConfigureAwait(false);
-            }
-            
-            await _webSocketConnection.CloseAsync().ConfigureAwait(false);
-        }
-
-        private async Task CloseSession()
-        {
-            // build a request to close this session
-            var msg = RequestMessage.Build(Tokens.OpsClose).Processor(Tokens.ProcessorSession).Create();
-
-            await SendMessageAsync(msg, CancellationToken.None).ConfigureAwait(false);
+            return null;
         }
 
         #region IDisposable Support
@@ -340,20 +280,10 @@ namespace Gremlin.Net.Driver
             {
                 if (disposing)
                 {
-                    _webSocketConnection?.Dispose();
-                    DisposeCancellationRegistrations();
+                    _httpClient?.Dispose();
                 }
                 _disposed = true;
             }
-        }
-
-        private void DisposeCancellationRegistrations()
-        {
-            foreach (var cancellation in _cancellationByRequestId.Values)
-            {
-                cancellation.Dispose();
-            }
-            _cancellationByRequestId.Clear();
         }
 
         #endregion

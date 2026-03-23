@@ -65,6 +65,7 @@ radishGremlinFile.withWriter('UTF-8') { Writer writer ->
                      'using Gremlin.Net.Process.Traversal;\n' +
                      'using Gremlin.Net.Process.Traversal.Strategy.Optimization;\n' +
                      'using Gremlin.Net.Process.Traversal.Strategy.Verification;\n' +
+                     'using Gremlin.Net.Process.Traversal.Strategy.Finalization;\n' +
                      'using Gremlin.Net.Process.Traversal.Strategy.Decoration;\n')
     writer.writeLine('namespace Gremlin.Net.IntegrationTest.Gherkin\n' +
             '{\n' +
@@ -138,9 +139,16 @@ radishGremlinFile.withWriter('UTF-8') { Writer writer ->
             '            Func<GraphTraversalSource, IDictionary<string, object>, ITraversal> f = list[0];\n' +
             '            list.RemoveAt(0);\n' +
             '            ITraversal traversal = f.Invoke(g, parameters);\n' +
-            '            foreach (var sideEffect in sideEffects)\n' +
+            '            // Side effects need to be prepended as source steps (before traversal steps).\n' +
+            '            // Build them in a temporary GremlinLang and prepend to the traversal\'s gremlin string.\n' +
+            '            if (sideEffects.Count > 0)\n' +
             '            {\n' +
-            '                traversal.Bytecode.AddSource("withSideEffect", sideEffect.Key, sideEffect.Value);\n' +
+            '                var sideEffectLang = new GremlinLang();\n' +
+            '                foreach (var sideEffect in sideEffects)\n' +
+            '                {\n' +
+            '                    sideEffectLang.AddSource("withSideEffect", sideEffect.Key, sideEffect.Value);\n' +
+            '                }\n' +
+            '                traversal.GremlinLang.Gremlin = sideEffectLang.Gremlin + traversal.GremlinLang.Gremlin;\n' +
             '            }\n' +
             '            return traversal;\n' +
             '        }\n' +
