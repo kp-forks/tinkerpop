@@ -26,12 +26,9 @@
 
 import { Effect } from 'effect';
 import type { Property } from './models/index.js';
-import type { SchemaConfig } from './types.js';
-import type { process } from 'gremlin';
+import type { GraphTraversalSource, SchemaConfig } from './types.js';
 import { getSamplePropertyValues, processBatched } from './query-utils.js';
 import type { GremlinQueryError } from '../errors.js';
-
-type GraphTraversalSource = process.GraphTraversalSource;
 
 /**
  * Analyzes property characteristics from collected values.

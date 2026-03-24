@@ -21,18 +21,18 @@
  * Shared types and interfaces for Gremlin service modules
  */
 
-import type { driver, process } from 'gremlin';
+import { driver, process } from 'gremlin';
 import type { GraphSchema } from './models/index.js';
 
 export type { GraphSchema };
 
-export type GremlinClientType = driver.Client;
-export type GremlinResultSet = driver.ResultSet;
-export type GremlinConnection = driver.DriverRemoteConnection;
-export type GraphTraversalSource = process.GraphTraversalSource;
+export type GremlinClientType = InstanceType<(typeof driver)['Client']>;
+export type GremlinResultSet = InstanceType<(typeof driver)['ResultSet']>;
+export type GremlinConnection = InstanceType<(typeof driver)['DriverRemoteConnection']>;
+export type GraphTraversalSource = InstanceType<(typeof process)['GraphTraversalSource']>;
 
 /**
- * Internal connection state - represents a fully initialized connection
+ * Active Gremlin connection state. Only created when the connection succeeds.
  */
 export interface ConnectionState {
   readonly client: GremlinClientType;
