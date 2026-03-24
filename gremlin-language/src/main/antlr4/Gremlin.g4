@@ -428,7 +428,7 @@ traversalMethod_coalesce
     ;
 
 traversalMethod_coin
-    : K_COIN LPAREN floatLiteral RPAREN
+    : K_COIN LPAREN numericLiteral RPAREN
     ;
 
 traversalMethod_combine
@@ -737,7 +737,7 @@ traversalMethod_outV
 
 traversalMethod_pageRank
     : K_PAGERANK LPAREN RPAREN #traversalMethod_pageRank_Empty
-    | K_PAGERANK LPAREN floatLiteral RPAREN #traversalMethod_pageRank_double
+    | K_PAGERANK LPAREN numericLiteral RPAREN #traversalMethod_pageRank_double
     ;
 
 traversalMethod_path
@@ -1513,11 +1513,6 @@ booleanArgument
 
 integerArgument
     : integerLiteral
-    | variable
-    ;
-
-floatArgument
-    : floatLiteral
     | variable
     ;
 
