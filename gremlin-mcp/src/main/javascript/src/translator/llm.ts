@@ -33,11 +33,26 @@ Canonical format rules:
 - Boolean literals are lowercase: true, false — not True, False
 - Null literal is: null — not None
 - No language-specific prefixes (gremlingo. has already been stripped)
-- Enum values use canonical casing: T.label, T.id, T.key, T.value; Direction.OUT, Direction.IN, Direction.BOTH; Order.asc, Order.desc, Order.shuffle; Scope.local, Scope.global; Pop.first, Pop.last, Pop.all, Pop.mixed; Merge.onCreate, Merge.onMatch, Merge.outV, Merge.inV; Cardinality.single, Cardinality.list, Cardinality.set
+- Enum values use the long form (ClassName.member) with exact casing:
+  T: T.id, T.label, T.key, T.value
+  Direction: Direction.OUT, Direction.IN, Direction.BOTH, Direction.from, Direction.to
+  Order: Order.asc, Order.desc, Order.shuffle
+  Scope: Scope.local, Scope.global
+  Pop: Pop.first, Pop.last, Pop.all, Pop.mixed
+  Merge: Merge.onCreate, Merge.onMatch, Merge.outV, Merge.inV
+  Cardinality: Cardinality.single, Cardinality.set, Cardinality.list
+  Column: Column.keys, Column.values
+  Operator: Operator.addAll, Operator.and, Operator.assign, Operator.div, Operator.max, Operator.min, Operator.minus, Operator.mult, Operator.or, Operator.sum, Operator.sumLong
+  Pick: Pick.any, Pick.none, Pick.unproductive
+  DT: DT.second, DT.minute, DT.hour, DT.day
+  Barrier: Barrier.normSack
+  GType: GType.BIGDECIMAL, GType.BIGINT, GType.BINARY, GType.BOOLEAN, GType.BYTE, GType.CHAR, GType.DATETIME, GType.DOUBLE, GType.DURATION, GType.EDGE, GType.FLOAT, GType.GRAPH, GType.INT, GType.LIST, GType.LONG, GType.MAP, GType.NULL, GType.NUMBER, GType.PATH, GType.PROPERTY, GType.SET, GType.SHORT, GType.STRING, GType.TREE, GType.UUID, GType.VERTEX, GType.VPROPERTY
 - No type casts: use null instead of (Map) null, (Object) null, (String) null, etc.
 - Collection literals: [a, b, c] for lists, {a, b, c} for sets, ["key": value] for maps
-- Date literals: datetime("2023-01-01T00:00:00Z") — not OffsetDateTime.parse(...)
-- UUID literals: uuid("...") or uuid() — not UUID.fromString(...) or UUID.randomUUID()
+- Date literals: datetime("2023-01-01T00:00:00Z") — not OffsetDateTime.parse(...), not DateTime(...)
+- UUID literals: UUID("...") or UUID() — not uuid(...), not UUID.fromString(...), not UUID.randomUUID()
+- Special float literals: NaN (not Double.NaN, Number.NaN, float('nan'), math.NaN()); Infinity (not Double.PositiveInfinity, math.Inf(1)); -Infinity (not Double.NegativeInfinity, math.Inf(-1))
+- Numeric type suffixes are preserved as-is: b (byte), s (short), i (int), l (long), f (float), d (double), m (BigDecimal), n (BigInteger) — e.g., 1b, 1s, 1i, 0l, 1.5f, 1.5d, 1m, 1n
 - No Java collection constructors (new ArrayList<>(), new HashSet<>(), new LinkedHashMap<>()) — use list/set/map literals
 
 Return ONLY the normalized Gremlin query. No explanation, no markdown, no surrounding text.`;
