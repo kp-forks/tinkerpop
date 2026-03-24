@@ -34,21 +34,55 @@
  * - https://github.com/mike-lischke/antlr4ng/discussions/21 (Discussion on package structure)
  */
 
-import { copyFileSync, readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const pkgDir = resolve(__dirname, '..', 'node_modules', 'antlr4ng');
+
+// Locate antlr4ng — handle workspace hoisting (package may live in a parent node_modules)
+let pkgDir = resolve(__dirname, '..', 'node_modules', 'antlr4ng');
+if (!existsSync(pkgDir)) {
+  pkgDir = resolve(__dirname, '..', '..', '..', 'node_modules', 'antlr4ng');
+}
+if (!existsSync(pkgDir)) {
+  console.warn(
+    '\n[patch-antlr4ng] WARNING: antlr4ng not found in node_modules. ' +
+      'TypeScript CJS type resolution may be broken. ' +
+      'Expected path: ' +
+      resolve(__dirname, '..', 'node_modules', 'antlr4ng') +
+      '\n',
+  );
+  process.exit(0); // non-fatal: let the build surface its own errors
+}
+
 const distDir = resolve(pkgDir, 'dist');
+const dts = resolve(distDir, 'index.d.ts');
+const cjs = resolve(distDir, 'index.cjs');
+const mjs = resolve(distDir, 'index.mjs');
+const pkgPath = resolve(pkgDir, 'package.json');
+
+// Verify expected files exist before patching — loud failure if antlr4ng restructured its dist/
+const required = [dts, cjs, mjs, pkgPath];
+const missing = required.filter((f) => !existsSync(f));
+if (missing.length > 0) {
+  console.error(
+    '\n[patch-antlr4ng] ERROR: antlr4ng dist layout has changed — patch cannot be applied.\n' +
+      'Missing files:\n' +
+      missing.map((f) => '  ' + f).join('\n') +
+      '\n' +
+      'Check whether antlr4ng has fixed CJS .d.cts support (issues #23/#26) and update or remove this script.\n',
+  );
+  process.exit(1);
+}
 
 // Copy index.d.ts → index.d.cts
-const dts = resolve(distDir, 'index.d.ts');
 const dcts = resolve(distDir, 'index.d.cts');
 copyFileSync(dts, dcts);
 
-// Update exports map to include "types" in the "require" condition
-const pkgPath = resolve(pkgDir, 'package.json');
+// Update exports map to include "types" in the "require" condition.
+// NOTE: this overwrites only the keys we know about from antlr4ng 3.0.16.
+// If antlr4ng adds new export conditions in a future version, review this script.
 const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
 pkg.exports = {
   types: './dist/index.d.ts',
@@ -57,4 +91,4 @@ pkg.exports = {
 };
 writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
 
-console.log('antlr4ng patched: added dist/index.d.cts and updated exports map');
+console.log('[patch-antlr4ng] patched: added dist/index.d.cts and updated exports map');
