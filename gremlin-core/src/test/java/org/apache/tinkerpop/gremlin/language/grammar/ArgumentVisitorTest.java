@@ -93,14 +93,14 @@ public class ArgumentVisitorTest {
                 {Long.class, "x", 0L, createAntlr(new VariableResolver.DirectVariableResolver(ElementHelper.asMap("x", (short) 0)))},
                 {Long.class, "x", 0L, createAntlr(new VariableResolver.DirectVariableResolver(ElementHelper.asMap("x", 0)))},
                 {Long.class, "x", 0L, createAntlr(new VariableResolver.DirectVariableResolver(ElementHelper.asMap("x", 0L)))},
-                {Float.class, "x", new VariableResolverException("x"), createAntlr(VariableResolver.NoVariableResolver.instance())},
-                {Float.class, "0.0d", 0.0, createAntlr(new VariableResolver.DefaultVariableResolver(ElementHelper.asMap("x", 1000.0)))},
-                {Float.class, "0d", 0.0, createAntlr(new VariableResolver.DefaultVariableResolver(ElementHelper.asMap("x", 1000.0)))},
-                {Float.class, "0F", 0.0F, createAntlr(new VariableResolver.DefaultVariableResolver(ElementHelper.asMap("x", 1000.0F)))},
-                {Float.class, "x", GValue.of("x", 0.0), createAntlr(new VariableResolver.DefaultVariableResolver(ElementHelper.asMap("x", 0.0)))},
-                {Float.class, "x", GValue.of("x", 0.0F), createAntlr(new VariableResolver.DefaultVariableResolver(ElementHelper.asMap("x", 0.0F)))},
-                {Float.class, "x", 0.0, createAntlr(new VariableResolver.DirectVariableResolver(ElementHelper.asMap("x", 0.0)))},
-                {Float.class, "x", 0.0F, createAntlr(new VariableResolver.DirectVariableResolver(ElementHelper.asMap("x", 0.0F)))},
+                {Object.class, "x", new VariableResolverException("x"), createAntlr(VariableResolver.NoVariableResolver.instance())},
+                {Object.class, "0.0d", 0.0, createAntlr(new VariableResolver.DefaultVariableResolver(ElementHelper.asMap("x", 1000.0)))},
+                {Object.class, "0d", 0.0, createAntlr(new VariableResolver.DefaultVariableResolver(ElementHelper.asMap("x", 1000.0)))},
+                {Object.class, "0F", 0.0F, createAntlr(new VariableResolver.DefaultVariableResolver(ElementHelper.asMap("x", 1000.0F)))},
+                {Object.class, "x", GValue.of("x", 0.0), createAntlr(new VariableResolver.DefaultVariableResolver(ElementHelper.asMap("x", 0.0)))},
+                {Object.class, "x", GValue.of("x", 0.0F), createAntlr(new VariableResolver.DefaultVariableResolver(ElementHelper.asMap("x", 0.0F)))},
+                {Object.class, "x", 0.0, createAntlr(new VariableResolver.DirectVariableResolver(ElementHelper.asMap("x", 0.0)))},
+                {Object.class, "x", 0.0F, createAntlr(new VariableResolver.DirectVariableResolver(ElementHelper.asMap("x", 0.0F)))},
                 {String.class, "x", new VariableResolverException("x"), createAntlr(VariableResolver.NoVariableResolver.instance())},
                 {String.class, "'test'", "test", createAntlr(new VariableResolver.DefaultVariableResolver(ElementHelper.asMap("x", "nope")))},
                 {String.class, "x", GValue.of("x", "test"), createAntlr(new VariableResolver.DefaultVariableResolver(ElementHelper.asMap("x", "test")))},
@@ -141,11 +141,6 @@ public class ArgumentVisitorTest {
             assertParsing(() -> {
                 final GremlinParser.IntegerArgumentContext ctx = parser.integerArgument();
                 return antlrToLanguage.argumentVisitor.parseLong(ctx);
-            });
-        } else if (clazz.equals(Float.class)) {
-            assertParsing(() -> {
-                final GremlinParser.FloatArgumentContext ctx = parser.floatArgument();
-                return antlrToLanguage.argumentVisitor.visitFloatArgument(ctx);
             });
         } else if (clazz.equals(String.class)) {
             assertParsing(() -> {

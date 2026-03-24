@@ -480,7 +480,7 @@ public class TraversalMethodVisitor extends TraversalRootVisitor<GraphTraversal>
      */
     @Override
     public GraphTraversal visitTraversalMethod_coin(final GremlinParser.TraversalMethod_coinContext ctx) {
-        return graphTraversal.coin(((Number) antlr.genericVisitor.visitFloatLiteral(ctx.floatLiteral())).doubleValue());
+        return graphTraversal.coin(((Number) antlr.genericVisitor.visitNumericLiteral(ctx.numericLiteral())).doubleValue());
     }
 
     /**
@@ -1310,7 +1310,7 @@ public class TraversalMethodVisitor extends TraversalRootVisitor<GraphTraversal>
      */
     @Override
     public GraphTraversal visitTraversalMethod_pageRank_double(final GremlinParser.TraversalMethod_pageRank_doubleContext ctx) {
-        return graphTraversal.pageRank(((Number) antlr.genericVisitor.visitFloatLiteral(ctx.floatLiteral())).doubleValue());
+        return graphTraversal.pageRank(((Number) antlr.genericVisitor.visitNumericLiteral(ctx.numericLiteral())).doubleValue());
     }
 
     /**

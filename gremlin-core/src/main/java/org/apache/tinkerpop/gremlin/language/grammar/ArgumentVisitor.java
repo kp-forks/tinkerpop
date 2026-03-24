@@ -131,15 +131,6 @@ public class ArgumentVisitor extends DefaultGremlinBaseVisitor<Object> {
     }
 
     @Override
-    public Object visitFloatArgument(final GremlinParser.FloatArgumentContext ctx) {
-        if (ctx.floatLiteral() != null) {
-            return antlr.genericVisitor.parseFloating(ctx.floatLiteral());
-        } else {
-            return visitVariable(ctx.variable());
-        }
-    }
-
-    @Override
     public Object visitStringArgument(final GremlinParser.StringArgumentContext ctx) {
         if (ctx.stringLiteral() != null) {
             return antlr.genericVisitor.parseString(ctx.stringLiteral());
