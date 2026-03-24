@@ -64,6 +64,19 @@ describe('GremlinTranslator', function () {
       ['g.inject(NaN)', 'g.inject(Number.NaN)'],
       ['g.inject(Infinity)', 'g.inject(Number.POSITIVE_INFINITY)'],
       ['g.inject(-Infinity)', 'g.inject(Number.NEGATIVE_INFINITY)'],
+      // terminal steps — pass through as-is in JavaScript
+      ['g.V().toList()', 'g.V().toList()'],
+      ['g.V().toSet()', 'g.V().toSet()'],
+      ['g.V().toBulkSet()', 'g.V().toBulkSet()'],
+      ['g.V().iterate()', 'g.V().iterate()'],
+      ['g.V().hasNext()', 'g.V().hasNext()'],
+      ['g.V().tryNext()', 'g.V().tryNext()'],
+      ['g.V().next()', 'g.V().next()'],
+      ['g.V().next(2)', 'g.V().next(2)'],
+      // transaction steps — pass through as-is in JavaScript
+      ['g.tx().begin()', 'g.tx().begin()'],
+      ['g.tx().commit()', 'g.tx().commit()'],
+      ['g.tx().rollback()', 'g.tx().rollback()'],
     ];
 
     tests.forEach(function ([input, expected]) {
@@ -169,6 +182,19 @@ describe('PythonTranslateVisitor', function () {
       ['g.inject({1,2,3})', 'g.inject({1, 2, 3})'],
       // Map literal — T.id → T.id_ in Python
       ['g.addV("person").property(T.id, [(T.label): "person"])', "g.add_v('person').property(T.id_, { T.label: 'person' })"],
+      // terminal steps — camelCase → snake_case
+      ['g.V().toList()', 'g.V().to_list()'],
+      ['g.V().toSet()', 'g.V().to_set()'],
+      ['g.V().toBulkSet()', 'g.V().to_bulk_set()'],
+      ['g.V().iterate()', 'g.V().iterate()'],
+      ['g.V().hasNext()', 'g.V().has_next()'],
+      ['g.V().tryNext()', 'g.V().try_next()'],
+      ['g.V().next()', 'g.V().next()'],
+      ['g.V().next(2)', 'g.V().next(2)'],
+      // transaction steps — no change in Python
+      ['g.tx().begin()', 'g.tx().begin()'],
+      ['g.tx().commit()', 'g.tx().commit()'],
+      ['g.tx().rollback()', 'g.tx().rollback()'],
     ];
 
     tests.forEach(function ([input, expected]) {
@@ -235,6 +261,19 @@ describe('GoTranslateVisitor', function () {
       ['g.inject(-Infinity)', 'g.Inject(math.Inf(-1))'],
       // null → nil
       ['g.V().has("name", null)', 'g.V().Has("name", nil)'],
+      // terminal steps — PascalCase
+      ['g.V().toList()', 'g.V().ToList()'],
+      ['g.V().toSet()', 'g.V().ToSet()'],
+      ['g.V().toBulkSet()', 'g.V().ToBulkSet()'],
+      ['g.V().iterate()', 'g.V().Iterate()'],
+      ['g.V().hasNext()', 'g.V().HasNext()'],
+      ['g.V().tryNext()', 'g.V().TryNext()'],
+      ['g.V().next()', 'g.V().Next()'],
+      ['g.V().next(2)', 'g.V().Next(2)'],
+      // transaction steps — PascalCase
+      ['g.tx().begin()', 'g.Tx().Begin()'],
+      ['g.tx().commit()', 'g.Tx().Commit()'],
+      ['g.tx().rollback()', 'g.Tx().Rollback()'],
     ];
 
     tests.forEach(function ([input, expected]) {
@@ -303,6 +342,19 @@ describe('DotNetTranslateVisitor', function () {
       ['g.V().values("name")', 'g.V().Values<object>("name")'],
       // null cast
       ['g.V().has("name", null)', 'g.V().Has("name", (object) null)'],
+      // terminal steps — PascalCase
+      ['g.V().toList()', 'g.V().ToList()'],
+      ['g.V().toSet()', 'g.V().ToSet()'],
+      ['g.V().toBulkSet()', 'g.V().ToBulkSet()'],
+      ['g.V().iterate()', 'g.V().Iterate()'],
+      ['g.V().hasNext()', 'g.V().HasNext()'],
+      ['g.V().tryNext()', 'g.V().TryNext()'],
+      ['g.V().next()', 'g.V().Next()'],
+      ['g.V().next(2)', 'g.V().Next(2)'],
+      // transaction steps — PascalCase
+      ['g.tx().begin()', 'g.Tx().Begin()'],
+      ['g.tx().commit()', 'g.Tx().Commit()'],
+      ['g.tx().rollback()', 'g.Tx().Rollback()'],
     ];
 
     tests.forEach(function ([input, expected]) {
@@ -371,6 +423,15 @@ describe('JavaTranslateVisitor', function () {
       ['g.inject({1,2,3})', 'g.inject(new HashSet<Object>() {{ add(1); add(2); add(3); }})'],
       // Map literal
       ['g.addV("person").property(T.id, [(T.label): "person"])', 'g.addV("person").property(T.id, new LinkedHashMap<Object, Object>() {{ put(T.label, "person"); }})'],
+      // terminal steps — pass through as-is in Java
+      ['g.V().toList()', 'g.V().toList()'],
+      ['g.V().iterate()', 'g.V().iterate()'],
+      ['g.V().next()', 'g.V().next()'],
+      ['g.V().next(2)', 'g.V().next(2)'],
+      // transaction steps — pass through as-is in Java
+      ['g.tx().begin()', 'g.tx().begin()'],
+      ['g.tx().commit()', 'g.tx().commit()'],
+      ['g.tx().rollback()', 'g.tx().rollback()'],
     ];
 
     tests.forEach(function ([input, expected]) {
@@ -448,6 +509,15 @@ describe('GroovyTranslateVisitor', function () {
       ['g.withStrategies(EdgeLabelVerificationStrategy(throwException: true, logWarning: false)).V().out()', 'g.withStrategies(new EdgeLabelVerificationStrategy(throwException:true, logWarning:false)).V().out()'],
       // withoutStrategies: no .class suffix
       ['g.withoutStrategies(EarlyLimitStrategy).V()', 'g.withoutStrategies(EarlyLimitStrategy).V()'],
+      // terminal steps — pass through as-is in Groovy
+      ['g.V().toList()', 'g.V().toList()'],
+      ['g.V().iterate()', 'g.V().iterate()'],
+      ['g.V().next()', 'g.V().next()'],
+      ['g.V().next(2)', 'g.V().next(2)'],
+      // transaction steps — pass through as-is in Groovy
+      ['g.tx().begin()', 'g.tx().begin()'],
+      ['g.tx().commit()', 'g.tx().commit()'],
+      ['g.tx().rollback()', 'g.tx().rollback()'],
     ];
 
     tests.forEach(function ([input, expected]) {
