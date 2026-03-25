@@ -96,6 +96,6 @@
     "doc": "jsdoc -r -d doc -R README.md lib/"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   }
 }
