@@ -47,7 +47,6 @@ export default class Client {
    * @param {Object} [options] The connection options.
    * @param {Array} [options.ca] Trusted certificates.
    * @param {String|Array|Buffer} [options.cert] The certificate key.
-   * @param {String} [options.mimeType] The mime type to use.
    * @param {String|Buffer} [options.pfx] The private key, certificate, and CA certs.
    * @param {GraphBinaryReader} [options.reader] The reader to use.
    * @param {Boolean} [options.rejectUnauthorized] Determines whether to verify or not the server certificate.
@@ -59,6 +58,7 @@ export default class Client {
    * @param {String} [options.processor] The name of the opProcessor to use, leave it undefined or set 'session' when session mode.
    * @param {String} [options.session] The sessionId of Client in session mode. Defaults to null means session-less Client.
    * @param {http.Agent} [options.agent] The http.Agent implementation to use.
+   * @param {RequestInterceptor|RequestInterceptor[]} [options.interceptors] One or more request interceptors to apply before each HTTP request.
    * @constructor
    */
   constructor(

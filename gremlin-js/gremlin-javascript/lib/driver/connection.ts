@@ -42,38 +42,41 @@ const responseStatusCode = {
   authenticationChallenge: 407,
 };
 
-const defaultMimeType = 'application/vnd.graphbinary-v4.0';
-const graphBinaryMimeType = 'application/vnd.graphbinary-v4.0';
+export type HttpRequest = {
+  url: string;
+  method: string;
+  headers: Record<string, string>;
+  body: any;
+};
 
-type MimeType = typeof defaultMimeType | typeof graphBinaryMimeType;
+export type RequestInterceptor = (request: HttpRequest) => HttpRequest | Promise<HttpRequest>;
 
 export type ConnectionOptions = {
   ca?: string[];
   cert?: string | string[] | Buffer;
-  mimeType?: MimeType; //TODO:: Revisit if MimeType should remain configurable
   pfx?: string | Buffer;
   reader?: any;
   rejectUnauthorized?: boolean;
   traversalSource?: string;
-  writer?: any;
+  writer?: any | null;
   headers?: Record<string, string | string[]>;
   enableUserAgentOnConnect?: boolean;
   agent?: Agent;
+  interceptors?: RequestInterceptor | RequestInterceptor[];
 };
 
 /**
  * Represents a single connection to a Gremlin Server.
  */
 export default class Connection extends EventEmitter {
-  readonly mimeType: MimeType;
-
   private readonly _reader: any;
-  private readonly _writer: any;
+  private readonly _writer: any | null;
 
   isOpen = true;
   traversalSource: string;
 
   private readonly _enableUserAgentOnConnect: boolean;
+  private readonly _interceptors: RequestInterceptor[];
 
   /**
    * Creates a new instance of {@link Connection}.
@@ -81,15 +84,15 @@ export default class Connection extends EventEmitter {
    * @param {Object} [options] The connection options.
    * @param {Array} [options.ca] Trusted certificates.
    * @param {String|Array|Buffer} [options.cert] The certificate key.
-   * @param {String} [options.mimeType] The mime type to use.
    * @param {String|Buffer} [options.pfx] The private key, certificate, and CA certs.
    * @param {GraphBinaryReader} [options.reader] The reader to use.
    * @param {Boolean} [options.rejectUnauthorized] Determines whether to verify or not the server certificate.
    * @param {String} [options.traversalSource] The traversal source. Defaults to: 'g'.
-   * @param {GraphBinaryWriter} [options.writer] The writer to use.
+   * @param {GraphBinaryWriter} [options.writer] The writer to use. Set to null to skip serialization.
    * @param {Object} [options.headers] An associative array containing the additional header key/values for the initial request.
    * @param {Boolean} [options.enableUserAgentOnConnect] Determines if a user agent will be sent during connection handshake. Defaults to: true
    * @param {http.Agent} [options.agent] The http.Agent implementation to use.
+   * @param {RequestInterceptor|RequestInterceptor[]} [options.interceptors] One or more request interceptors to apply before each HTTP request.
    * @constructor
    */
   constructor(
@@ -98,15 +101,21 @@ export default class Connection extends EventEmitter {
   ) {
     super();
 
-    /**
-     * Gets the MIME type.
-     * @type {String}
-     */
-    this.mimeType = options.mimeType || defaultMimeType;
     this._reader = options.reader || graphBinaryReader;
-    this._writer = options.writer || graphBinaryWriter;
+    this._writer = 'writer' in options ? options.writer : graphBinaryWriter;
     this.traversalSource = options.traversalSource || 'g';
     this._enableUserAgentOnConnect = options.enableUserAgentOnConnect !== false;
+
+    const interceptors = options.interceptors;
+    if (typeof interceptors === 'function') {
+      this._interceptors = [interceptors];
+    } else if (Array.isArray(interceptors)) {
+      this._interceptors = interceptors;
+    } else if (interceptors === undefined || interceptors === null) {
+      this._interceptors = [];
+    } else {
+      throw new TypeError('interceptors must be a function, array, or undefined');
+    }
   }
 
   /**
@@ -120,9 +129,10 @@ export default class Connection extends EventEmitter {
 
   /** @override */
   submit(request: RequestMessage) {
-    const request_buf: Buffer = this._writer.writeRequest(request);
+    // The user may not want the body to be serialized if they are using an interceptor.
+    const body = this._writer ? this._writer.writeRequest(request) : request;
     
-    return this.#makeHttpRequest(request_buf)
+    return this.#makeHttpRequest(body)
         .then((response) => {
           return this.#handleResponse(response);
         });
@@ -138,18 +148,21 @@ export default class Connection extends EventEmitter {
       return this._reader;
     }
 
-    if (contentType === graphBinaryMimeType) {
-      return graphBinaryReader;
+    if (contentType === this._reader.mimeType) {
+      return this._reader;
     }
 
     return null;
   }
 
-  async #makeHttpRequest(request_buf: Buffer): Promise<Response> {
+  async #makeHttpRequest(body: any): Promise<Response> {
     const headers: Record<string, string> = {
-      'Content-Type': this.mimeType,
-      'Accept': this.mimeType
+      'Accept': this._reader.mimeType
     };
+
+    if (this._writer) {
+      headers['Content-Type'] = this._writer.mimeType;
+    }
 
     if (this._enableUserAgentOnConnect) {
       const userAgent = await utils.getUserAgent();
@@ -163,15 +176,26 @@ export default class Connection extends EventEmitter {
         headers[key] = Array.isArray(value) ? value.join(', ') : value;
       });
     }
-    let request = {
+    let httpRequest: HttpRequest = {
+      url: this.url,
       method: 'POST',
       headers,
-      body: new Uint8Array(request_buf),
+      body,
+    };
+
+    for (let i = 0; i < this._interceptors.length; i++) {
+      try {
+        httpRequest = await this._interceptors[i](httpRequest);
+      } catch (e: any) {
+        throw new Error(`Request interceptor at index ${i} failed: ${e.message}`, { cause: e });
+      }
     }
 
-    // TODO:: add request interceptors
-
-    return fetch(this.url, request);
+    return fetch(httpRequest.url, {
+      method: httpRequest.method,
+      headers: httpRequest.headers,
+      body: httpRequest.body,
+    });
   }
 
   async #handleResponse(response: Response) {
@@ -217,7 +241,7 @@ export default class Connection extends EventEmitter {
     }
 
     if (!reader) {
-      throw new Error(`Unsupported Content-Type: ${contentType}`);
+      throw new Error(`Response Content-Type '${contentType}' does not match the configured reader (expected '${this._reader.mimeType}')`);
     }
 
     const deserialized = reader.readResponse(buffer);

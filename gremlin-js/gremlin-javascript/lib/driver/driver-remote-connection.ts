@@ -41,7 +41,6 @@ export default class DriverRemoteConnection extends RemoteConnection {
    * @param {ConnectionOptions} [options] The connection options.
    * @param {Array} [options.ca] Trusted certificates.
    * @param {String|Array|Buffer} [options.cert] The certificate key.
-   * @param {String} [options.mimeType] The mime type to use.
    * @param {String|Buffer} [options.pfx] The private key, certificate, and CA certs.
    * @param {GraphBinaryReader} [options.reader] The reader to use.
    * @param {Boolean} [options.rejectUnauthorized] Determines whether to verify or not the server certificate.
@@ -51,6 +50,7 @@ export default class DriverRemoteConnection extends RemoteConnection {
    * @param {Object} [options.headers] An associative array containing the additional header key/values for the initial request.
    * @param {Boolean} [options.enableUserAgentOnConnect] Determines if a user agent will be sent during connection handshake. Defaults to: true
    * @param {http.Agent} [options.agent] The http.Agent implementation to use.
+   * @param {RequestInterceptor|RequestInterceptor[]} [options.interceptors] One or more request interceptors to apply before each HTTP request.
    * @constructor
    */
   constructor(url: string, options: ConnectionOptions = {}) {
