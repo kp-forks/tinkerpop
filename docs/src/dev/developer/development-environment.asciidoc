@@ -28,7 +28,7 @@ image:conspiracy.png[]
 [[system-configuration]]
 == System Configuration
 
-At a minimum, development of TinkerPop requires link:https://openjdk.java.net/projects/jdk/11/[Java 11]. Since 3.7.0, you can also build with
+At a minimum, development of TinkerPop requires link:https://openjdk.java.net/projects/jdk/11/[Java 11] or
 link:https://openjdk.org/projects/jdk/17/[Java 17]. Note, however, that there are some issues with deep reflection
 so there are `--add-opens` JVM options included in the pom files to enable this to work. Maven (requiring a minimum of
 link:https://maven.apache.org/download.cgi[Maven 3.5.3+]) is used as the common build system, which even
@@ -41,9 +41,9 @@ of the project and those will go untested.
 To gain the ability to execute all aspects of the TinkerPop build system, other environmental configurations must be
 established. Those prerequisites are defined in the following subsections.
 
-As of TinkerPop 3.5.5, environment configuration for Gremlin Language Variants can be optional, as Docker becomes a
-system requirement to build and test GLVs inside of Maven. Please make sure Docker is installed and running on your system.
-You will need to install both link:https://docs.docker.com/engine/install/[Docker Engine] and
+Specific environmental configuration for Gremlin Language Variants can be optional, as Docker becomes a
+system requirement to build and test GLVs inside of Maven. Please make sure Docker is installed and running on your
+system. You will need to install both link:https://docs.docker.com/engine/install/[Docker Engine] and
 link:https://docs.docker.com/compose/install/[Docker Compose], which are included in
 link:https://docs.docker.com/desktop/[Docker Desktop].
 
@@ -85,9 +85,8 @@ and the basic Ivy configuration will look as follows:
         <artifact pattern="${user.home}/.groovy/grapes/[organisation]/[module]/[type]s/[artifact]-[revision](-[classifier]).[ext]"/>
       </filesystem>
       <ibiblio name="localm2" root="${user.home.url}/.m2/repository/" checkmodified="true" changingPattern=".*" changingMatcher="regexp" m2compatible="true"/>
-      <ibiblio name="jcenter" root="https://jcenter.bintray.com/" m2compatible="true"/>
       <ibiblio name="ibiblio" m2compatible="true"/>
-      <ibiblio name="apache-snapshots" root="http://repository.apache.org/snapshots/" m2compatible="true"/>
+      <ibiblio name="apache-snapshots" root="https://repository.apache.org/snapshots/" m2compatible="true"/>
     </chain>
   </resolvers>
 </ivysettings>
@@ -237,29 +236,17 @@ The site will be generated to the `target/site/home` directory.
 [[python-environment]]
 === Python Environment
 
-As of TinkerPop 3.2.2, the build optionally requires link:https://www.python.org/[Python] to build the `gremlin-python`
-module. If Python is not installed, TinkerPop will still build with Maven, but native Python tests and
-Java tests that require Python code will be skipped. Developers should also install link:https://pypi.python.org/pypi/pip[pip]
-and link:https://virtualenv.pypa.io/en/stable/[virtualenv] (version 15.0.2 - older versions may cause build failures).
+`gremlin-python` uses Docker for all tests inside of Maven, so a local Python installation is not required. Please
+make sure Docker is installed and running on your system.
 
-The build expects Python a `python3` installation which should be 3.5.3 or better. Python also tests kerberos and
-therefore requires:
-
-[source,text]
-sudo apt install libkrb5-dev krb5-user
-
-As of TinkerPop 3.5.5, `gremlin-python` uses Docker for all tests inside of Maven, and Python installation will not be required to
-run `gremlin-python` through Maven. Please make sure Docker is installed and running on your system.
-
-Once the Python environment is established, the full building and testing of `gremlin-python` may commence. It
-can be done manually from the command line with:
+The full building and testing of `gremlin-python` can be done from the command line with:
 
 [source,text]
 mvn clean install -Pglv-python
 
-which enables the "glv-python" Maven profile or in a more automated fashion simply add a `.glv` file to the root of the
-`gremlin-python` module which will signify to Maven that the environment is Python-ready. The `.glv` file need not have
-any contents and is ignored by Git. A standard `mvn clean install` will then build `gremlin-python` in full.
+which enables the "glv-python" Maven profile. Alternatively, add a `.glv` file to the root of the `gremlin-python`
+module to signal to Maven that `gremlin-python` should always build in full. The `.glv` file need not have any
+contents and is ignored by Git. A standard `mvn clean install` will then build `gremlin-python` in full.
 
 The `.glv` file in `gremlin-python` also activates the "console-integration-tests" Maven profile to run gremlin-console
 integration tests. Alternatively, this profile can be activated manually. Note that unlike `gremlin-python` the tests
@@ -271,8 +258,6 @@ mvn clean install -pl gremlin-console -DskipIntegrationTests=false
 TIP: For those who do not have a full Maven environment, please see <<docker-integration,this section>> for how Docker
 can be used to help run tests.
 
-TIP: Consider use of link:https://realpython.com/intro-to-pyenv/[pyenv] to better manage Python versions and environments.
-
 See the <<release-environment,Release Environment>> section for more information on release manager configurations.
 
 [[dotnet-environment]]
@@ -282,8 +267,8 @@ The build optionally requires link:https://dotnet.microsoft.com/download[.NET SD
 `gremlin-dotnet` module. If .NET SDK is not installed, TinkerPop will still build with Maven, but .NET projects
 will be skipped.
 
-As of TinkerPop 3.5.5, `gremlin-dotnet` uses Docker for running all test projects inside of Maven, and .NET SDK will not
-be required to run `gremlin-dotnet` tests through Maven. Please make sure Docker is installed and running on your system.
+`gremlin-dotnet` uses Docker for running all test projects inside of Maven, and .NET SDK will not be required to run
+`gremlin-dotnet` tests through Maven. Please make sure Docker is installed and running on your system.
 
 `gremlin-dotnet` can be built and tested from the command line with:
 
@@ -387,8 +372,8 @@ newgrp docker
 sudo chmod 666 /var/run/docker.sock
 ----
 
-As of TinkerPop 3.5.5, a docker image of the Gremlin Server will be built automatically with `mvn clean install`, which
-is use for GLV tests inside of Docker. To skip building this image, append the `-DskipImageBuild` flag to Maven commands.
+A docker image of the Gremlin Server will be built automatically with `mvn clean install`, which is use for GLV tests
+inside of Docker. To skip building this image, append the `-DskipImageBuild` flag to Maven commands.
 
 [[release-environment]]
 === Release Environment
@@ -517,7 +502,7 @@ The following commands are a mix of Maven flags and shell scripts that handle di
 Maven project list argument, e.g.:
 +
 ----
-export GREMLIN_TESTS='org.apache.tinkerpop.gremlin.process.traversal.step.map.PathTest$Traversals,org.apache.tinkerpop.gremlin.process.traversal.PathTest'
+export GREMLIN_TESTS='org.apache.tinkerpop.gremlin.process.traversal.step.map.MatchTest$CountMatchTraversals'
 mvn -Dmaven.javadoc.skip=true --projects tinkergraph-gremlin test
 ----
 ** Clean the `.groovy/grapes/org.apache.tinkerpop` directory on build: `mvn clean install -DcleanGrapes`
@@ -540,8 +525,8 @@ mvn -Dmaven.javadoc.skip=true --projects tinkergraph-gremlin test
 * Check the effective `pom.xml`: `mvn -pl gremlin-python -Pglv-python help:effective-pom -Doutput=withProfilePom.xml`
 * Deploy JavaDocs/AsciiDocs: `bin/publish-docs.sh svn-username`
 * Integration Tests: `mvn verify -DskipIntegrationTests=false`
-** Execute with the `-DincludeNeo4j` option to include neo4j-gremlin tests. As of 3.7.0, transactional tests on Gremlin Server, Gremlin Driver,
-and GLVs will run automatically with integration tests against the TinkerTransactionGraph.
+** Execute with the `-DincludeNeo4j` option to include neo4j-gremlin tests. Transactional tests on Gremlin Server,
+Gremlin Driver, and GLVs will run automatically with integration tests against the `TinkerTransactionGraph`.
 ** Execute with the `-DuseEpoll` option to try to use Netty native transport (works on Linux, but will fallback to Java NIO on other OS).
 * Benchmarks: `mvn verify -DskipBenchmarks=false`
 ** Reports are generated to the console and to `gremlin-tools/gremlin-benchmark/target/reports/benchmark`.
@@ -777,13 +762,13 @@ for the non-JVM languages.
 There are generally no complexities to running the debugger for any JVM-based test in the repository, but the following
 tips are helpful to know when doing so:
 
-* It is not possible to run the tests in `gremlin-test` without an `Graph` implementation. For example, it is not
-possible to just right-click `org.apache.tinkerpop.gremlin.process.traversal.step.filter.CoinTest` and then select
-`Debug 'CoinTest'`. Instead, running that test would require opening `tinkergraph-gremlin` and executing the
-`TinkerGraphProcessStandardTest` (as an example) which runs the full Gremlin test suite to include `CoinTest`.
-* To run just `CoinTest`, set a `GREMLIN_TESTS` environment variable with the fully qualified path name to the test
+* It is not possible to run the tests in `gremlin-test` without a `Graph` implementation. For example, it is not
+possible to just right-click `org.apache.tinkerpop.gremlin.process.traversal.step.map.MatchTest` and then select
+`Debug 'MatchTest'`. Instead, running that test would require opening `tinkergraph-gremlin` and executing the
+`TinkerGraphProcessStandardTest` (as an example) which runs the full Gremlin test suite to include `MatchTest`.
+* To run just `MatchTest`, set a `GREMLIN_TESTS` environment variable with the fully qualified path name to the test
 configuration in Intellij. Note that the fully qualified test name is really
-`org.apache.tinkerpop.gremlin.process.traversal.step.filter.CoinTest$Traversals`.
+`org.apache.tinkerpop.gremlin.process.traversal.step.map.MatchTest$CountMatchTraversals`.
 * Gherkin tests have a similar pattern in that they require a `Graph` implementation to execute them. Therefore,
 debugging entails going to `tinkergraph-gremlin` and running `TinkerGraphFeatureTest` in the debugger.
 * It is possible to filter the Gherkin tests by adding a system property to the debug configuration that specifies the

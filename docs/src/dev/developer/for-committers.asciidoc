@@ -136,16 +136,10 @@ distinguished from other changes in the release notes.
 
 TinkerPop has several release branches:
 
-* `3.0-dev` - 3.0.x (no longer maintained)
-* `3.1-dev` - 3.1.x (no longer maintained)
-* `3.2-dev` - 3.2.x (no longer maintained)
-* `3.3-dev` - 3.3.x (no longer maintained)
-* `3.4-dev` - 3.4.x (no longer maintained)
-* `3.5-dev` - 3.5.x (no longer maintained)
-* `3.6-dev` - 3.6.x (no longer maintained)
+* `3.0-dev` through `3.6-dev` (no longer maintained)
 * `3.7-dev` - 3.7.x (non-breaking bug fixes and enhancements)
-* `3.8-dev` - 3.8.x (current development)
-* `master` - 4.x (future development)
+* `3.8-dev` - 3.8.x (current 3.x development)
+* `master` - 4.x (current development)
 
 The branch description above that reads "non-breaking bug fixes and enhancements" simply means that within that release
 line (i.e. patch version) changes should not alter existing behavior, introduce new APIs, change serialization formats,
@@ -468,8 +462,8 @@ And the traversal of
   """
 ----
 
-The traversal must be written so that it can be parsed by both `gremlin-groovy` and `gremlin-language`. Using syntax
-particular to one but not the other may result in test execution errors.
+The traversal must be written so that it can be parsed by `gremlin-language`. Using syntax incompatible with the
+grammar may result in test execution errors.
 
 It will be the results of this traversal that end up being asserted by Gherkin. When writing these test traversals,
 be sure to always use the method and enum prefixes. For example, use  `__.out()` for an anonymous traversal rather
@@ -669,6 +663,9 @@ configured by `CucumberOptions` on "*FeatureTest" setups.
 
 [[gremlin-socket-server-tests]]
 === Gremlin Socket Server Tests
+
+IMPORTANT: 4.0.0-beta.1 Release - Removes websockets. This section will be updated as the new HTTP test server falls into place.
+
 `gremlin-socket-server` is an included test server for driver tests which require predefined server
 behavior. Typically, this is to test scenarios such as the server closing the connection or returning
 an error code but other response behavior can be added as needed for tests.

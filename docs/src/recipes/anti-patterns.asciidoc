@@ -230,8 +230,8 @@ g.V().has('person','name','marko')            <2>
 [[steps-instead-of-tokens]]
 == Steps Instead of Tokens
 
-NOTE: As of 3.5.0, `ByModulatorOptimizationStrategy` is present to automatically translate this anti-pattern to their
-more performant versions for most cases however, it is still best to write Gremlin according to the contents that follow.
+NOTE: `ByModulatorOptimizationStrategy` is present to automatically translate this anti-pattern to their more performant
+ versions for most cases however, it is still best to write Gremlin according to the contents that follow.
 
 When child traversals contain a single step, there's a good chance that the step can be replaced with a token. These
 tokens are translated into optimized traversals that execute much faster then their step traversal pendants. A few
