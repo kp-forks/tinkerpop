@@ -18,25 +18,77 @@ limitations under the License.
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <parent>
         <groupId>org.apache.tinkerpop</groupId>
-        <artifactId>tinkerpop</artifactId>
+        <artifactId>gremlin-js</artifactId>
         <version>4.0.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
-
-    <artifactId>gremlin-mcp</artifactId>
-    <name>Apache TinkerPop :: Gremlin MCP</name>
-
+    <artifactId>gremlint</artifactId>
+    <name>Apache TinkerPop :: Gremlint</name>
     <properties>
         <maven.test.skip>false</maven.test.skip>
         <skipTests>${maven.test.skip}</skipTests>
     </properties>
-
     <build>
         <directory>${basedir}/target</directory>
         <finalName>${project.artifactId}-${project.version}</finalName>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>com.github.eirslett</groupId>
+                    <artifactId>frontend-maven-plugin</artifactId>
+                    <version>1.15.0</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <plugins>
+            <plugin>
+                <!--
+                Use gmavenplus-plugin to:
+                    - Update version number
+                -->
+                <groupId>org.codehaus.gmavenplus</groupId>
+                <artifactId>gmavenplus-plugin</artifactId>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.apache.groovy</groupId>
+                        <artifactId>groovy-all</artifactId>
+                        <version>${groovy.version}</version>
+                        <type>pom</type>
+                        <scope>runtime</scope>
+                    </dependency>
+                </dependencies>
+                <executions>
+                    <execution>
+                        <id>update-version</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>execute</goal>
+                        </goals>
+                        <configuration>
+                            <properties>
+                                <property>
+                                    <name>projectBaseDir</name>
+                                    <value>${project.basedir}</value>
+                                </property>
+                                <property>
+                                    <name>mavenVersion</name>
+                                    <value>${project.version}</value>
+                                </property>
+                            </properties>
+                            <scripts>
+                                <script>
+                                    def versionForJs = mavenVersion.replace("-SNAPSHOT", "-alpha1")
+                                    def platformAgnosticBaseDirPath = project.basedir.getAbsolutePath().replace("\\","/")
+                                    def file = new File(platformAgnosticBaseDirPath + "/package.json")
+                                    file.write(file.getText("UTF-8").replaceFirst(/"version": "(.*)",/, "\"version\": \"" + versionForJs + "\","))
+                                </script>
+                            </scripts>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-clean-plugin</artifactId>
@@ -47,66 +99,60 @@ limitations under the License.
                         </goals>
                     </execution>
                 </executions>
-                <configuration>
-                    <filesets>
-                        <fileset>
-                            <directory>src/main/javascript/dist</directory>
-                            <directory>src/main/javascript/node_modules</directory>
-                        </fileset>
-                    </filesets>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>com.github.eirslett</groupId>
                 <artifactId>frontend-maven-plugin</artifactId>
-                <version>1.15.0</version>
                 <executions>
                     <execution>
-                        <id>install node and npm</id>
+                        <id>install node and npm at workspace root</id>
                         <phase>validate</phase>
+                        <goals>
+                            <goal>install-node-and-npm</goal>
+                        </goals>
+                        <configuration>
+                            <workingDirectory>${project.basedir}/..</workingDirectory>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm workspace install</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>ci</arguments>
+                            <workingDirectory>${project.basedir}/..</workingDirectory>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>install node and npm</id>
+                        <phase>generate-resources</phase>
                         <goals>
                             <goal>install-node-and-npm</goal>
                         </goals>
                     </execution>
                     <execution>
-                        <id>npm install</id>
-                        <phase>generate-resources</phase>
+                        <id>npm test</id>
+                        <phase>test</phase>
                         <goals>
                             <goal>npm</goal>
                         </goals>
                         <configuration>
-                            <arguments>install</arguments>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>npm validate</id>
-                        <phase>generate-resources</phase>
-                        <goals>
-                            <goal>npm</goal>
-                        </goals>
-                        <configuration>
-                            <arguments>run validate</arguments>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>npm build</id>
-                        <phase>generate-resources</phase>
-                        <goals>
-                            <goal>npm</goal>
-                        </goals>
-                        <configuration>
-                            <arguments>run build</arguments>
+                            <skip>${skipTests}</skip>
+                            <arguments>test --exit</arguments>
+                            <failOnError>true</failOnError>
                         </configuration>
                     </execution>
                 </executions>
                 <configuration>
-                    <workingDirectory>src/main/javascript</workingDirectory>
                     <nodeVersion>${runtime.node.version}</nodeVersion>
                     <npmVersion>${runtime.npm.version}</npmVersion>
                 </configuration>
             </plugin>
-
-            <!-- There is no JVM code/artifacts to publish for this module -->
+            <!--
+            there is no point to building/deploying the jvm stuff - there is no java source really - just poms
+            -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
@@ -135,30 +181,17 @@ limitations under the License.
                     <skip>true</skip>
                 </configuration>
             </plugin>
-            <plugin>
-                <groupId>com.google.code.maven-replacer-plugin</groupId>
-                <artifactId>replacer</artifactId>
-                <configuration>
-                    <file>src/main/javascript/src/constants.ts</file>
-                    <replacements>
-                        <replacement>
-                            <token>GREMLIN_VERSION = '.*'</token>
-                            <value>GREMLIN_VERSION = '${project.version}'</value>
-                        </replacement>
-                    </replacements>
-                </configuration>
-            </plugin>
         </plugins>
     </build>
     <profiles>
         <!--
-       Provides a way to deploy the gremlin-mcp to npm. This cannot be part of the standard maven execution
-       because npm does not have a staging environment like sonatype for releases. As soon as the release is
-       published it is public. In our release workflow, deploy occurs prior to vote on the release and we can't
-       make this stuff public until the vote is over.
-       -->
+        Provides a way to deploy gremlint to npm. This cannot be part of the standard maven execution
+        because npm does not have a staging environment like sonatype for releases. As soon as the release is
+        published it is public. In our release workflow, deploy occurs prior to vote on the release and we can't
+        make this stuff public until the vote is over.
+        -->
         <profile>
-            <id>gremlin-mcp-deploy</id>
+            <id>gremlint-deploy</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
                 <property>
@@ -189,7 +222,6 @@ limitations under the License.
                             activated and that should be good enough given our deployment process.
                             -->
                             <skip>false</skip>
-                            <workingDirectory>src/main/javascript</workingDirectory>
                             <nodeVersion>${runtime.node.version}</nodeVersion>
                             <npmVersion>${runtime.npm.version}</npmVersion>
                         </configuration>

@@ -20,14 +20,19 @@ limitations under the License.
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.tinkerpop</groupId>
-        <artifactId>tinkerpop</artifactId>
+        <artifactId>gremlin-js</artifactId>
         <version>4.0.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>gremlin-javascript</artifactId>
     <name>Apache TinkerPop :: Gremlin Javascript</name>
     <properties>
         <maven.test.skip>false</maven.test.skip>
         <skipTests>${maven.test.skip}</skipTests>
+        <!-- Host UID/GID passed to Docker so container writes files as the current user.
+             Override with -Dhost.uid=$(id -u) -Dhost.gid=$(id -g) if your UID != 1000. -->
+        <host.uid>1000</host.uid>
+        <host.gid>1000</host.gid>
     </properties>
     <build>
         <directory>${basedir}/target</directory>
@@ -90,11 +95,11 @@ limitations under the License.
                             <properties>
                                 <property>
                                     <name>projectBaseDir</name>
-                                    <value>${project.basedir}/../</value>
+                                    <value>${project.basedir}/../../</value>
                                 </property>
                             </properties>
                             <scripts>
-                                <script>${project.basedir}/build/generate.groovy</script>
+                                <script>${project.basedir}/scripts/groovy/generate.groovy</script>
                             </scripts>
                         </configuration>
                     </execution>
@@ -110,7 +115,7 @@ limitations under the License.
                                     def mavenVersion = "${project.version}"
                                     def versionForJs = mavenVersion.replace("-SNAPSHOT", "-alpha1")
                                     def platformAgnosticBaseDirPath = project.basedir.getAbsolutePath().replace("\\", "/")
-                                    def file = new File(platformAgnosticBaseDirPath + "/src/main/javascript/gremlin-javascript/package.json")
+                                    def file = new File(platformAgnosticBaseDirPath + "/package.json")
                                     file.write(file.getText("UTF-8").replaceFirst(/"version": "(.*)",/, "\"version\": \"" + versionForJs + "\","))
                                 </script>
                             </scripts>
@@ -131,7 +136,7 @@ limitations under the License.
                 <configuration>
                     <filesets>
                         <fileset>
-                            <directory>src/main/javascript/gremlin-javascript/build</directory>
+                            <directory>build</directory>
                         </fileset>
                     </filesets>
                 </configuration>
@@ -141,21 +146,32 @@ limitations under the License.
                 <artifactId>frontend-maven-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>install node and npm</id>
+                        <id>install node and npm at workspace root</id>
                         <phase>validate</phase>
                         <goals>
                             <goal>install-node-and-npm</goal>
                         </goals>
+                        <configuration>
+                            <workingDirectory>${project.basedir}/..</workingDirectory>
+                        </configuration>
                     </execution>
                     <execution>
-                        <id>npm install</id>
+                        <id>npm workspace install</id>
                         <phase>validate</phase>
                         <goals>
                             <goal>npm</goal>
                         </goals>
                         <configuration>
                             <arguments>ci</arguments>
+                            <workingDirectory>${project.basedir}/..</workingDirectory>
                         </configuration>
+                    </execution>
+                    <execution>
+                        <id>install node and npm</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>install-node-and-npm</goal>
+                        </goals>
                     </execution>
                     <execution>
                         <id>npm lint</id>
@@ -181,7 +197,7 @@ limitations under the License.
                     </execution>
                 </executions>
                 <configuration>
-                    <workingDirectory>src/main/javascript/gremlin-javascript</workingDirectory>
+                    <workingDirectory>.</workingDirectory>
                     <nodeVersion>${runtime.node.version}</nodeVersion>
                     <npmVersion>${runtime.npm.version}</npmVersion>
                 </configuration>
@@ -221,7 +237,7 @@ limitations under the License.
                 <groupId>com.google.code.maven-replacer-plugin</groupId>
                 <artifactId>replacer</artifactId>
                 <configuration>
-                    <file>src/main/javascript/gremlin-javascript/lib/utils.ts</file>
+                    <file>lib/utils.ts</file>
                     <replacements>
                         <replacement>
                             <token>gremlinVersion = '.*'</token>
@@ -257,10 +273,13 @@ limitations under the License.
                                     <skip>${skipTests}</skip>
                                     <environmentVariables>
                                         <GREMLIN_SERVER>${project.version}</GREMLIN_SERVER>
-                                        <ABS_PROJECT_HOME>${project.basedir}/../</ABS_PROJECT_HOME>
+                                        <ABS_PROJECT_HOME>${project.basedir}/../../</ABS_PROJECT_HOME>
                                         <!-- setting this env variable is needed to be cross-platform compatible -->
                                         <HOME>${user.home}</HOME>
                                         <NODE_VERSION>${node.test.version}</NODE_VERSION>
+                                        <!-- pass host UID/GID so Docker writes files as the current user -->
+                                        <HOST_UID>${host.uid}</HOST_UID>
+                                        <HOST_GID>${host.gid}</HOST_GID>
                                     </environmentVariables>
                                     <executable>docker</executable>
                                     <arguments>
@@ -270,7 +289,7 @@ limitations under the License.
                                         <argument>--exit-code-from</argument>
                                         <argument>gremlin-js-integration-tests</argument>
                                     </arguments>
-                                    <workingDirectory>./src/main/javascript/gremlin-javascript</workingDirectory>
+                                    <workingDirectory>.</workingDirectory>
                                 </configuration>
                             </execution>
                             <execution>
@@ -287,7 +306,7 @@ limitations under the License.
                                         <argument>compose</argument>
                                         <argument>down</argument>
                                     </arguments>
-                                    <workingDirectory>./src/main/javascript/gremlin-javascript</workingDirectory>
+                                    <workingDirectory>.</workingDirectory>
                                 </configuration>
                             </execution>
                             <execution>
@@ -351,7 +370,7 @@ limitations under the License.
                             activated and that should be good enough given our deployment process.
                             -->
                             <skip>false</skip>
-                            <workingDirectory>src/main/javascript/gremlin-javascript</workingDirectory>
+                            <workingDirectory>.</workingDirectory>
                             <nodeVersion>${runtime.node.version}</nodeVersion>
                             <npmVersion>${runtime.npm.version}</npmVersion>
                         </configuration>
