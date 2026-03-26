@@ -89,6 +89,105 @@ might apply.
 
 * JavaScript GLV
 ** `mimeType` setting has been removed. Use `reader` and `writer` options directly to control serialization format.
+* .NET GLV
+** `ConnectionPoolSettings` has been replaced with `ConnectionSettings` for HTTP connection configuration.
+** `webSocketConfiguration` parameter has been removed.
+** `sessionId` parameter has been removed.
+** `disableCompression` parameter has been removed. Use `ConnectionSettings.EnableCompression` instead.
+** `username` and `password` on `GremlinServer` have been removed. Use `Auth.BasicAuth()` interceptor instead.
+** `interceptors` parameter has been added to `GremlinClient` for HTTP request modification.
+** `requestSerializer` and `responseSerializer` can now be set independently on `GremlinClient`.
+** `Bytecode` has been replaced with `GremlinLang`.
+** `GraphBinaryMessageSerializer` has been replaced with `GraphBinary4MessageSerializer`.
+* Go GLV
+** `AuthInfo` setting has been removed. Use `RequestInterceptors` with `BasicAuth()` or `SigV4Auth()` instead.
+** `TransporterType`, `ReadBufferSize`, `WriteBufferSize`, `WriteDeadline`, `NewConnectionThreshold`, and `Session` settings have been removed.
+** `RequestInterceptors` has been added for HTTP request modification.
+** `MaxIdleConnections`, `IdleConnectionTimeout`, and `KeepAliveInterval` settings have been added.
+** `Bytecode` has been replaced with `GremlinLang`.
+** Serialization updated to GraphBinary 4.
+
+[[dotnet-http-interceptor]]
+==== Gremlin.Net HTTP and Interceptor Changes
+
+The Gremlin.Net driver has been updated to use HTTP instead of WebSockets, aligning it with the Java and Python GLVs.
+The `Connection` class now uses `HttpClient` internally and sends requests via HTTP POST to Gremlin Server.
+
+`Bytecode` has been replaced with `GremlinLang`, which builds a gremlin-lang compatible string representation of a
+traversal along with a map of named parameters. Traversals now produce gremlin-lang strings that are sent to the server
+rather than serialized bytecode.
+
+HTTP interceptors have been added to `gremlin-dotnet` to enable capability similar to that of the Java and Python GLVs.
+Interceptors can be passed to the `GremlinClient` constructor using the `interceptors` parameter. An interceptor is a
+`Func<HttpRequestContext, Task>` that receives a mutable `HttpRequestContext` containing the HTTP method, URI, headers,
+and body. Interceptors are executed in order before the request is sent.
+
+Authentication is now handled through interceptors rather than `GremlinServer` constructor parameters. The `Auth` class
+provides factory methods for built-in interceptors:
+
+[source,csharp]
+----
+// Basic authentication
+var server = new GremlinServer("localhost", 8182, enableSsl: true);
+var client = new GremlinClient(server,
+    connectionSettings: new ConnectionSettings { SkipCertificateValidation = true },
+    interceptors: new[] { Auth.BasicAuth("username", "password") });
+
+// SigV4 authentication
+var server = new GremlinServer("localhost", 8182, enableSsl: true);
+var client = new GremlinClient(server,
+    interceptors: new[] { Auth.SigV4Auth("service-region", "service-name") });
+----
+
+The serializer has been split into a `requestSerializer` and a `responseSerializer` on `GremlinClient`. Setting
+`requestSerializer` to `null` prevents the `RequestMessage` from being serialized before interceptors run, allowing an
+interceptor to handle serialization and set the `Content-Type` header. This follows the same pattern as the Python
+driver's `request_serializer=None`.
+
+The `ConnectionPool`, `WebSocketConnection`, and related WebSocket classes have been removed. The HTTP connection is
+managed by `SocketsHttpHandler` which handles its own TCP connection pool internally.
+
+Transaction support over HTTP is not yet implemented and `Tx()` will throw `NotSupportedException`.
+
+[[go-http-interceptor]]
+==== Gremlin-Go HTTP and Interceptor Changes
+
+The Gremlin-Go driver has been updated to use HTTP instead of WebSockets. The `connection` type now uses Go's standard
+`net/http` package with configurable connection pooling via `http.Transport`.
+
+`Bytecode` has been replaced with `GremlinLang`, which builds a gremlin-lang compatible string representation of a
+traversal along with a map of named parameters.
+
+HTTP interceptors have been added to `gremlin-go` to enable capability similar to that of the Java and Python GLVs.
+Interceptors can be passed via the `RequestInterceptors` field in `DriverRemoteConnectionSettings` or `ClientSettings`.
+A `RequestInterceptor` is a `func(*HttpRequest) error` that receives a mutable `HttpRequest` containing the HTTP
+method, URL, headers, and body. Interceptors are executed in order before the request is sent.
+
+Authentication is now handled through interceptors rather than the `AuthInfo` setting. The `auth` module provides
+factory functions for built-in interceptors:
+
+[source,go]
+----
+// Basic authentication
+remote, err := gremlingo.NewDriverRemoteConnection("https://localhost:8182/gremlin",
+  func(settings *gremlingo.DriverRemoteConnectionSettings) {
+    settings.RequestInterceptors = []gremlingo.RequestInterceptor{
+      gremlingo.BasicAuth("username", "password"),
+    }
+  })
+
+// SigV4 authentication
+remote, err := gremlingo.NewDriverRemoteConnection("https://localhost:8182/gremlin",
+  func(settings *gremlingo.DriverRemoteConnectionSettings) {
+    settings.RequestInterceptors = []gremlingo.RequestInterceptor{
+      gremlingo.SigV4Auth("service-region", "service-name"),
+    }
+  })
+----
+
+The WebSocket-specific settings (`TransporterType`, `ReadBufferSize`, `WriteBufferSize`, `WriteDeadline`,
+`NewConnectionThreshold`, `Session`) have been removed. New HTTP connection pool settings have been added:
+`MaximumConcurrentConnections`, `MaxIdleConnections`, `IdleConnectionTimeout`, and `KeepAliveInterval`.
 
 === Upgrading for Providers
 

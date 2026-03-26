@@ -71,8 +71,6 @@ providing more detailed information about usage, configuration and known limitat
 
 [[gremlin-go]]
 == Gremlin-Go
-IMPORTANT: 4.0.0-beta.1 Release - Gremlin-Go is not available in this beta, please consider testing with Java or
-Python.
 
 image:gremlin-go.png[width=130,float=right] Apache TinkerPop's Gremlin-Go implements Gremlin within the link:https://go.dev/[Go] language and can therefore be used on different operating systems. Go's syntax has the similar constructs as Java including
 "dot notation" for function chaining (`a.b.c`) and round bracket function arguments (`a(b,c)`). Something unlike Java is that Gremlin-Go requires a
@@ -80,11 +78,13 @@ image:gremlin-go.png[width=130,float=right] Apache TinkerPop's Gremlin-Go implem
 with Gremlin-Go with relative ease. Moreover, there are a few added constructs to Gremlin-Go that make traversals a bit more
 succinct.
 
+The Gremlin-Go driver communicates with Gremlin Server over HTTP using the GraphBinary 4.0 serialization format.
+
 To install the Gremlin-Go as a dependency for your project, run the following in the root directory of your project that contains your `go.mod` file:
 
 [source,bash]
 ----
-go get github.com/apache/tinkerpop/gremlin-go/v3[optionally append @<version>, such as @v3.5.3]
+go get github.com/apache/tinkerpop/gremlin-go/v3[optionally append @<version>, such as @v3.8.0]
 ----
 
 The following table outlines recommended runtime versions by the release in which their support began:
@@ -114,7 +114,7 @@ creating a `GraphTraversalSource`. A `GraphTraversalSource` is created from the 
 
 [source,go]
 ----
-remote, err := gremlingo.NewDriverRemoteConnection("ws://localhost:8182/gremlin")
+remote, err := gremlingo.NewDriverRemoteConnection("http://localhost:8182/gremlin")
 g := gremlingo.Traversal_().With(remote)
 ----
 
@@ -122,26 +122,38 @@ If you need to additional parameters to connection setup, you can pass in a conf
 
 [source,go]
 ----
-remote, err := gremlingo.NewDriverRemoteConnection("ws://localhost:8182/gremlin",
+remote, err := gremlingo.NewDriverRemoteConnection("http://localhost:8182/gremlin",
   func(settings *DriverRemoteConnectionSettings) {
     settings.TraversalSource = "gmodern"
   })
 ----
 
-Gremlin-go supports plain text authentication. It can be set in the connection function.
+Gremlin-Go contains an `auth` module that provides factory functions for built-in request interceptors, with plain text
+and SigV4 authentication provided as reference.
 
 [source,go]
 ----
-remote, err := gremlingo.NewDriverRemoteConnection("ws://localhost:8182/gremlin",
-  func(settings *DriverRemoteConnectionSettings) {
+// Plain text authentication
+remote, err := gremlingo.NewDriverRemoteConnection("https://localhost:8182/gremlin",
+  func(settings *gremlingo.DriverRemoteConnectionSettings) {
     settings.TlsConfig = &tls.Config{InsecureSkipVerify: true}
-    settings.AuthInfo = gremlingo.BasicAuthInfo("login", "password")
+    settings.RequestInterceptors = []gremlingo.RequestInterceptor{
+      gremlingo.BasicAuth("username", "password"),
+    }
+  })
+
+// SigV4 authentication
+remote, err := gremlingo.NewDriverRemoteConnection("https://localhost:8182/gremlin",
+  func(settings *gremlingo.DriverRemoteConnectionSettings) {
+    settings.RequestInterceptors = []gremlingo.RequestInterceptor{
+      gremlingo.SigV4Auth("service-region", "service-name"),
+    }
   })
 ----
 
 If you authenticate to a remote <<connecting-gremlin-server,Gremlin Server>> or
-<<connecting-rgp,Remote Gremlin Provider>>, this server normally has SSL activated and the websockets url will start
-with 'wss://'.
+<<connecting-rgp,Remote Gremlin Provider>>, this server normally has SSL activated and the HTTP url will start
+with 'https://'.
 
 Some connection options can also be set on individual requests made through the using `With()` step on the
 `TraversalSource`. For instance to set request timeout to 500 milliseconds:
@@ -151,7 +163,7 @@ Some connection options can also be set on individual requests made through the 
 results, err := g.With("evaluationTimeout", 500).V().Out("knows").ToList()
 ----
 
-The following options are allowed on a per-request basis in this fashion: `batchSize`, `requestId`, `userAgent` and
+The following options are allowed on a per-request basis in this fashion: `batchSize`, `userAgent` and
 `evaluationTimeout`.
 
 anchor:go-imports[]
@@ -180,31 +192,27 @@ anchor:go-configuration[]
 [[gremlin-go-configuration]]
 === Configuration
 
-The following table describes the various configuration options for the Gremlin-go Driver. They
+The following table describes the various configuration options for the Gremlin-Go Driver. They
 can be passed to the `NewClient` or `NewDriverRemoteConnection` functions as configuration function arguments:
 
 [width="100%",cols="3,10,^2",options="header"]
 |=========================================================
 |Key |Description |Default
 |TraversalSource |Traversal source. |"g"
-|TransporterType |Transporter type. |Gorilla
 |LogVerbosity |Log verbosity.|gremlingo.INFO
 |Logger |Instance of logger. |log
 |Language |Language used for logging messages. |language.English
-|AuthInfo |Authentification info, can be build with BasicAuthInfo() or HeaderAuthInfo(). |empty
 |TlsConfig |TLS configuration. |empty
-|KeepAliveInterval |Keep connection alive interval. |5 seconds
-|WriteDeadline |Write deadline. |3 seconds
-|ConnectionTimeout | Timeout for establishing connection. |45 seconds
-|NewConnectionThreshold | Minimum amount of concurrent active traversals on a connection to trigger creation of a new connection. |4
-|MaximumConcurrentConnections | Maximum number of concurrent connections. |number of runtime processors
+|ConnectionTimeout | Timeout for establishing connection. |15 seconds
+|MaximumConcurrentConnections | Maximum number of concurrent TCP connections to the server. |128
+|MaxIdleConnections | Maximum number of idle (keep-alive) connections in the pool. |8
+|IdleConnectionTimeout | How long idle connections remain in the pool before being closed. |180 seconds
+|KeepAliveInterval | TCP keep-alive probe interval. |30 seconds
 |EnableCompression |Flag to enable compression. |false
-|ReadBufferSize |Specify I/O buffer sizes in bytes. If a buffer size is zero, then a useful default size is used |0
-|WriteBufferSize |Specify I/O buffer sizes in bytes. If a buffer size is zero, then a useful default size is used |0
-|Session |Session ID. |""
 |EnableUserAgentOnConnect |Enables sending a user agent to the server during connection requests.
 More details can be found in provider docs
 link:https://tinkerpop.apache.org/docs/x.y.z/dev/provider/#_graph_driver_provider_requirements[here].|true
+|RequestInterceptors |Functions that modify HTTP requests before sending. Used for authentication and custom headers. |empty
 |=========================================================
 
 [[gremlin-go-strategies]]
@@ -220,74 +228,26 @@ promise := g.WithStrategies(gremlingo.ReadOnlyStrategy()).AddV("person").Propert
 
 NOTE: Many of the `TraversalStrategy` classes in Gremlin-Go are proxies to the respective strategy on
 Apache TinkerPop's JVM-based Gremlin traversal machine. As such, their `apply(Traversal)` method does nothing. However,
-the strategy is encoded in the Gremlin-Go bytecode and transmitted to the Gremlin traversal machine for
+the strategy is encoded in the Gremlin-Go GremlinLang and transmitted to the Gremlin traversal machine for
 re-construction machine-side.
 
 [[gremlin-go-transactions]]
 === Transactions
 
-To get a full understanding of this section, it would be good to start by reading the <<transactions,Transactions>>
-section of this documentation, which discusses transactions in the general context of TinkerPop itself. This section
-builds on that content by demonstrating the transactional syntax for Go.
+IMPORTANT: Transaction support over HTTP is not yet implemented in Gremlin-Go. This will be addressed in a future
+release.
+
+[[gremlin-go-gvalue]]
+=== GValue Parameterization
+
+A `GValue` is an encapsulation of a parameter name and value. A <<traversal-parameterization,subset of gremlin steps>>
+are able to accept GValues. When constructing a `GraphTraversal` with such steps in Go, a GValue may be passed in
+the traversal to utilize a parameter in place of a literal.
 
 [source,go]
 ----
-remote, err := NewDriverRemoteConnection("ws://localhost:8182/gremlin")
-g := gremlingo.Traversal_().With(remote)
-
-// Create a Transaction.
-tx := g.Tx()
-
-// Spawn a new GraphTraversalSource, binding all traversals established from it to tx.
-gtx, _ := tx.Begin()
-
-// Execute a traversal within the transaction.
-promise := g.AddV("person").Property("name", "Lyndon").Iterate()
-err := <-promise
-
-if err != nil {
-  // Rollback the transaction if an error occurs.
-  tx.rollback()
-} else {
-  // Commit the transaction. The transaction can no longer be used and cannot be re-used.
-  // A new transaction can be spawned through g.Tx().
-  tx.Commit()
-}
+g.V().Has("name", gremlingo.NewGValue("name", "marko"))
 ----
-
-[[gremlin-go-lambda]]
-=== The Lambda Solution
-
-Supporting link:https://en.wikipedia.org/wiki/Anonymous_function[anonymous functions] across languages is difficult as
-most languages do not support lambda introspection and thus, code analysis. In Gremlin-Go, a Gremlin lambda should
-be represented as a zero-arg callable that returns a string representation of the lambda expected for use in the
-traversal. The lambda should be written as a `Gremlin-Groovy` string. When the lambda is represented in `Bytecode` its
-language is encoded such that the remote connection host can infer which translator and ultimate execution engine to
-use.
-
-[source,go]
-----
-r, err := g.V().Out().Map(&gremlingo.Lambda{Script: "it.get().value('name').length()", Language: ""}).Sum().ToList()
-----
-
-TIP: When running into situations where Groovy cannot properly discern a method signature based on the `Lambda`
-instance created, it will help to fully define the closure in the lambda expression - so rather than
-`Script: "it.get().value('name')", Language: "gremlin-groovy"`, prefer `Script: "x -> x.get().value('name')", Language: "gremlin-groovy"`.
-
-Finally, Gremlin `Bytecode` that includes lambdas requires that the traversal be processed by the
-`ScriptEngine`. To avoid continued recompilation costs, it supports the encoding of bindings, which allow a remote
-engine to to cache traversals that will be reused over and over again save that some parameterization may change. Thus,
-instead of translating, compiling, and then executing each submitted bytecode, it is possible to simply execute.
-
-[source,go]
-----
-r, err := g.V((&gremlingo.Bindings{}).Of("x", 1)).Out("created").Map(&gremlingo.Lambda{Script: "it.get().value('name').length()", Language: ""}).Sum().ToList()
-// 3
-r, err := g.V((&gremlingo.Bindings{}).Of("x", 4)).Out("created").Map(&gremlingo.Lambda{Script: "it.get().value('name').length()", Language: ""}).Sum().ToList()
-// 9
-----
-
-WARNING: As explained throughout the documentation, when possible <<a-note-on-lambdas,avoid>> lambdas.
 
 [[gremlin-go-scripts]]
 === Submitting Scripts
@@ -299,7 +259,7 @@ Usage is as follows:
 [source,go]
 ----
 import "github.com/apache/tinkerpop/gremlin-go/v3/driver" <1>
-client, err := gremlingo.NewClient("ws://localhost:8182/gremlin") <2>
+client, err := gremlingo.NewClient("http://localhost:8182/gremlin") <2>
 ----
 
 <1> Import the Gremlin-Go module.
@@ -338,13 +298,9 @@ options := new(RequestOptionsBuilder).
 resultSet, err := client.SubmitWithOptions("g.V(x).count()", options)
 ----
 
-The following options are allowed on a per-request basis in this fashion: `batchSize`, `requestId`, `userAgent`, `evaluationTimeout` and `materializeProperties`.
+The following options are allowed on a per-request basis in this fashion: `batchSize`, `userAgent`, `evaluationTimeout` and `materializeProperties`.
 `RequestOptions` may also contain a map of variable `bindings` to be applied to the supplied
 traversal string.
-
-IMPORTANT: The preferred method for setting a per-request timeout for scripts is demonstrated above, but those familiar
-with bytecode may try `g.with("evaluationTimeout", 500)` within a script. Scripts with multiple traversals and multiple
-timeouts will be interpreted as a sum of all timeouts identified in the script for that request.
 
 [source,go]
 ----
@@ -405,13 +361,13 @@ type socialTraversalSource struct {
 	*GraphTraversalSource
 }
 
-// Define the source step function by adding steps to the bytecode.
+// Define the source step function by adding steps to the GremlinLang.
 func (sts *socialTraversalSource) persons(personNames ...interface{}) *socialTraversal {
 	t := sts.GetGraphTraversal()
-	t.Bytecode.AddStep("V")
-	t.Bytecode.AddStep("hasLabel", "person")
+	t.GremlinLang.AddStep("V")
+	t.GremlinLang.AddStep("hasLabel", "person")
 	if personNames != nil {
-		t.Bytecode.AddStep("has", "name", P.Within(personNames...))
+		t.GremlinLang.AddStep("has", "name", P.Within(personNames...))
 	}
 	return &socialTraversal{t}
 }
@@ -435,7 +391,7 @@ type socialAnonymousTraversal struct {
 var s__ iSocialAnonymousTraversal = &socialAnonymousTraversal{
 	__,
 	func() *socialTraversal {
-		return &socialTraversal{gremlingo.NewGraphTraversal(nil, gremlingo.NewBytecode(nil), nil)}
+		return &socialTraversal{gremlingo.NewGraphTraversal(nil, gremlingo.NewGremlinLang(nil), nil)}
 	},
 }
 
@@ -458,7 +414,7 @@ Using the DSL requires a social traversal source to be created from the default 
 [source,go]
 ----
 // Creating the driver remote connection as regular.
-driverRemoteConnection, _ := gremlingo.NewDriverRemoteConnection("ws://localhost:8182/gremlin",
+driverRemoteConnection, _ := gremlingo.NewDriverRemoteConnection("http://localhost:8182/gremlin",
 	func(settings *gremlingo.DriverRemoteConnectionSettings) {
 		settings.TraversalSource = "gmodern"
 	})
@@ -2007,8 +1963,6 @@ node modern-traversals.js
 anchor:gremlin-DotNet[]
 [[gremlin-dotnet]]
 == Gremlin.Net
-IMPORTANT: 4.0.0-beta.1 Release - Gremlin.Net is not available in this beta, please consider testing with Java or
-Python.
 
 image:gremlin-dotnet-logo.png[width=371,float=right] Apache TinkerPop's Gremlin.Net implements Gremlin within the C#
 language. It targets .NET Standard and can therefore be used on different operating systems and with different .NET
@@ -2016,6 +1970,8 @@ frameworks, such as .NET Framework and link:https://www.microsoft.com/net/core[.
 similar to that of Java, it should be easy to switch between Gremlin-Java and Gremlin.Net. The only major syntactical
 difference is that all method names in Gremlin.Net use PascalCase as opposed to camelCase in Gremlin-Java in order
 to comply with .NET conventions.
+
+The Gremlin.Net driver communicates with Gremlin Server over HTTP using the GraphBinary 4.0 serialization format.
 
 [source,powershell]
 nuget install Gremlin.Net
@@ -2046,6 +2002,35 @@ the remote end.
 include::../../../gremlin-dotnet/test/Gremlin.Net.IntegrationTest/Docs/Reference/GremlinVariantsTests.cs[tags=connecting]
 ----
 
+Authentication is handled through request interceptors. For basic username/password authentication, use the
+`Auth.BasicAuth()` interceptor:
+
+[source,csharp]
+----
+include::../../../gremlin-dotnet/test/Gremlin.Net.IntegrationTest/Docs/Reference/GremlinVariantsTests.cs[tags=submittingScriptsWithAuthentication]
+----
+
+Gremlin.Net contains an `Auth` class that provides factory methods for built-in request interceptors, with plain text
+and SigV4 authentication provided as reference.
+
+[source,csharp]
+----
+// Plain text authentication
+var server = new GremlinServer("localhost", 8182, enableSsl: true);
+using var client = new GremlinClient(server,
+    connectionSettings: new ConnectionSettings { SkipCertificateValidation = true },
+    interceptors: new[] { Auth.BasicAuth("username", "password") });
+
+// SigV4 authentication
+var server = new GremlinServer("localhost", 8182, enableSsl: true);
+using var client = new GremlinClient(server,
+    interceptors: new[] { Auth.SigV4Auth("service-region", "service-name") });
+----
+
+If you authenticate to a remote <<connecting-gremlin-server,Gremlin Server>> or
+<<connecting-rgp,Remote Gremlin Provider>>, this server normally has SSL activated and the HTTP url will start
+with 'https://'.
+
 Some connection options can also be set on individual requests using the `With()` step on the `TraversalSource`.
 For instance to set request timeout to 500 milliseconds:
 
@@ -2054,9 +2039,9 @@ For instance to set request timeout to 500 milliseconds:
 var l = g.With(Tokens.ArgsEvalTimeout, 500).V().Out("knows").Count().ToList();
 ----
 
-The following options are allowed on a per-request basis in this fashion: `batchSize`, `requestId`, `userAgent` and
-`evaluationTimeout` (formerly `scriptEvaluationTimeout` which is also supported but now deprecated). These options are
-available as constants on the `Gremlin.Net.Driver.Tokens` class.
+The following options are allowed on a per-request basis in this fashion: `batchSize`, `userAgent`,
+`materializeProperties`, and `evaluationTimeout`. These options are available as constants on the
+`Gremlin.Net.Driver.Tokens` class.
 
 [[gremlin-dotnet-imports]]
 === Common Imports
@@ -2072,7 +2057,7 @@ include::../../../gremlin-dotnet/test/Gremlin.Net.IntegrationTest/Docs/Reference
 [[gremlin-dotnet-configuration]]
 === Configuration
 
-The connection properties for the Gremlin.Net driver can be passed to the `GremlinServer` instance as keyword arguments:
+The `GremlinServer` class defines the server endpoint:
 
 [width="100%",cols="3,10,^2",options="header"]
 |=========================================================
@@ -2080,44 +2065,43 @@ The connection properties for the Gremlin.Net driver can be passed to the `Greml
 |hostname |The hostname that the driver will connect to. |localhost
 |port |The port on which Gremlin Server can be reached. |8182
 |enableSsl |Determines if SSL should be enabled or not. If enabled on the server then it must be enabled on the client. |false
-|username |The username to submit on requests that require authentication. |_none_
-|password |The password to submit on requests that require authentication. |_none_
+|path |The path to the Gremlin endpoint on the server. |/gremlin
 |=========================================================
 
-==== Connection Pool
+==== Connection Settings
 
-It is also possible to configure the `ConnectionPool` of the Gremlin.Net driver.
-These configuration options can be set as properties
-on the `ConnectionPoolSettings` instance that can be passed to the `GremlinClient`:
+The HTTP connection can be configured through the `ConnectionSettings` class, which is passed to the `GremlinClient`
+constructor:
 
 [width="100%",cols="3,10,^2",options="header"]
 |=========================================================
 |Key |Description |Default
-|PoolSize |The size of the connection pool. |4
-|MaxInProcessPerConnection |The maximum number of in-flight requests that can occur on a connection. |32
-|ReconnectionAttempts |The number of attempts to get an open connection from the pool to submit a request. |4
-|ReconnectionBaseDelay |The base delay used for the exponential backoff for the reconnection attempts. |1 s
-|EnableUserAgentOnConnect |Enables sending a user agent to the server during connection requests.
+|ConnectionTimeout |The TCP connection timeout. |15 s
+|IdleConnectionTimeout |How long idle connections stay in the pool before being closed. |180 s
+|MaxConnectionsPerServer |The maximum concurrent connections to a single server. |128
+|KeepAliveInterval |The TCP keep-alive probe interval. |30 s
+|EnableCompression |Whether to request deflate compression. |false
+|EnableUserAgentOnConnect |Enables sending a user agent to the server on requests.
 More details can be found in provider docs
 link:https://tinkerpop.apache.org/docs/x.y.z/dev/provider/#_graph_driver_provider_requirements[here].|true
+|BulkResults |Whether to send the bulkResults header on all requests. |false
+|SkipCertificateValidation |Whether to skip SSL certificate validation. Only use for testing with self-signed certificates. |false
 |=========================================================
 
-A `NoConnectionAvailableException` is thrown if all connections have reached the `MaxInProcessPerConnection` limit
-when a new request comes in.
-A `ServerUnavailableException` is thrown if no connection is available to the server to submit a request after
-`ReconnectionAttempts` retries.
+==== GremlinClient Settings
 
-==== WebSocket Configuration
+The following options can be passed to the `GremlinClient` constructor:
 
-The WebSocket connections can also be configured, directly as parameters of the `GremlinClient` constructor. It takes
-an optional delegate `webSocketConfiguration` that will be invoked for each connection. This makes it possible to
-configure more advanced options like the `KeepAliveInterval` or client certificates.
-
-Starting with .NET 6, it is also possible to use compression for WebSockets. This is enabled by default starting with
-TinkerPop 3.5.3 (again, only on .NET 6 or higher). Note that compression might make an application susceptible to
-attacks like CRIME/BREACH. Compression should therefore be turned off if the application sends sensitive data to the
-server as well as data that could potentially be controlled by an untrusted user. Compression can be disabled via the
-`disableCompression` parameter.
+[width="100%",cols="3,10,^2",options="header"]
+|=========================================================
+|Key |Description |Default
+|messageSerializer |A single `IMessageSerializer` used for both request and response. |`GraphBinary4MessageSerializer`
+|requestSerializer |The serializer for outgoing requests. When `null`, interceptors must serialize the body. |`GraphBinary4MessageSerializer`
+|responseSerializer |The serializer for incoming responses. Always required. |`GraphBinary4MessageSerializer`
+|connectionSettings |The `ConnectionSettings` for the HTTP connection. |default `ConnectionSettings`
+|loggerFactory |An `ILoggerFactory` for logging. |`NullLoggerFactory`
+|interceptors |A list of `Func<HttpRequestContext, Task>` that modify HTTP requests before sending. |_none_
+|=========================================================
 
 [[gremlin-dotnet-logging]]
 === Logging
@@ -2133,20 +2117,24 @@ include::../../../gremlin-dotnet/test/Gremlin.Net.IntegrationTest/Docs/Reference
 [[gremlin-dotnet-serialization]]
 === Serialization
 
-The Gremlin.Net driver uses by default GraphBinary but it is also possible to use another serialization format by passing a message serializer when creating the `GremlinClient`.
-
-GraphSON 3.0 can be configured like this:
-
-[source,csharp]
-----
-include::../../../gremlin-dotnet/test/Gremlin.Net.IntegrationTest/Docs/Reference/GremlinVariantsTests.cs[tags=serializationGraphSon3]
-----
-
-and GraphSON 2.0 like this:
+The Gremlin.Net driver uses GraphBinary 4.0 by default. A custom serializer can be provided when creating the
+`GremlinClient`. The driver supports separate request and response serializers, or a single serializer for both:
 
 [source,csharp]
 ----
-include::../../../gremlin-dotnet/test/Gremlin.Net.IntegrationTest/Docs/Reference/GremlinVariantsTests.cs[tags=serializationGraphSon]
+include::../../../gremlin-dotnet/test/Gremlin.Net.IntegrationTest/Docs/Reference/GremlinVariantsTests.cs[tags=serializationBinary]
+----
+
+[[gremlin-dotnet-gvalue]]
+=== GValue Parameterization
+
+A `GValue` is an encapsulation of a parameter name and value. A <<traversal-parameterization,subset of gremlin steps>>
+are able to accept GValues. When constructing a `GraphTraversal` with such steps in C#, a GValue may be passed in
+the traversal to utilize a parameter in place of a literal.
+
+[source,csharp]
+----
+g.V().Has("name", new GValue<string>("name", "marko"));
 ----
 
 [[gremlin-dotnet-strategies]]
@@ -2162,43 +2150,13 @@ include::../../../gremlin-dotnet/test/Gremlin.Net.IntegrationTest/Docs/Reference
 
 NOTE: Many of the TraversalStrategy classes in Gremlin.Net are proxies to the respective strategy on Apache TinkerPop’s
 JVM-based Gremlin traversal machine. As such, their `Apply(ITraversal)` method does nothing. However, the strategy is
-encoded in the Gremlin.Net bytecode and transmitted to the Gremlin traversal machine for re-construction machine-side.
+encoded in the Gremlin.Net GremlinLang and transmitted to the Gremlin traversal machine for re-construction machine-side.
 
 [[gremlin-dotnet-transactions]]
 === Transactions
 
-To get a full understanding of this section, it would be good to start by reading the <<transactions,Transactions>>
-section of this documentation, which discusses transactions in the general context of TinkerPop itself. This section
-builds on that content by demonstrating the transactional syntax for C#.
-
-[source,csharp]
-----
-include::../../../gremlin-dotnet/test/Gremlin.Net.IntegrationTest/Docs/Reference/GremlinVariantsTests.cs[tags=transactions]
-----
-
-[[gremlin-dotnet-lambda]]
-=== The Lambda Solution
-
-Supporting link:https://en.wikipedia.org/wiki/Anonymous_function[anonymous functions] across languages is difficult as
-most languages do not support lambda introspection and thus, code analysis. While Gremlin.Net doesn't support C# lambdas, it
-is still able to represent lambdas in other languages. When the lambda is represented in `Bytecode` its language is encoded
-such that the remote connection host can infer which translator and ultimate execution engine to use.
-
-[source,csharp]
-----
-g.V().Out().Map<int>(Lambda.Groovy("it.get().value('name').length()")).Sum<int>().ToList();      <1>
-g.V().Out().Map<int>(Lambda.Python("lambda x: len(x.get().value('name'))")).Sum<int>().ToList(); <2>
-----
-
-<1> `Lambda.Groovy()` can be used to create a Groovy lambda.
-<2> `Lambda.Python()` can be used to create a Python lambda.
-
-The `ILambda` interface returned by these two methods inherits interfaces like `IFunction` and `IPredicate` that mirror
-their Java counterparts which makes it possible to use lambdas with Gremlin.Net for the same steps as in Gremlin-Java.
-
-TIP: When running into situations where Groovy cannot properly discern a method signature based on the `Lambda`
-instance created, it will help to fully define the closure in the lambda expression - so rather than
-`Lambda.Groovy("it.get().value('name'))`, prefer `Lambda.Groovy("x -> x.get().value('name'))`.
+IMPORTANT: Transaction support over HTTP is not yet implemented in Gremlin.Net. This will be addressed in a future
+release.
 
 [[gremlin-dotnet-scripts]]
 === Submitting Scripts
@@ -2210,7 +2168,7 @@ Gremlin scripts are sent to the server from a `IGremlinClient` instance.  A `IGr
 include::../../../gremlin-dotnet/test/Gremlin.Net.IntegrationTest/Docs/Reference/GremlinVariantsTests.cs[tags=submittingScripts]
 ----
 
-If the remote system has authentication and SSL enabled, then the `GremlinServer` object can be configured as follows:
+Authentication is handled through request interceptors. For basic authentication with SSL:
 
 [source,csharp]
 ----
@@ -2219,7 +2177,7 @@ include::../../../gremlin-dotnet/test/Gremlin.Net.IntegrationTest/Docs/Reference
 
 ==== Per Request Settings
 
-The `GremlinClient.Submit()` functions accept an option to build a raw `RequestMessage`. A good use-case for this
+A `RequestMessage` can be built with additional fields using the builder pattern. A good use-case for this
 feature is to set a per-request override to the `evaluationTimeout` so that it only applies to the current request.
 
 [source,csharp]
@@ -2227,13 +2185,24 @@ feature is to set a per-request override to the `evaluationTimeout` so that it o
 include::../../../gremlin-dotnet/test/Gremlin.Net.IntegrationTest/Docs/Reference/GremlinVariantsTests.cs[tags=submittingScriptsWithTimeout]
 ----
 
-The following options are allowed on a per-request basis in this fashion: `batchSize`, `requestId`, `userAgent`, `materializeProperties` and
-`evaluationTimeout` (formerly `scriptEvaluationTimeout` which is also supported but now deprecated). These options are
-available as constants on the `Gremlin.Net.Driver.Tokens` class.
+The following options are allowed on a per-request basis in this fashion: `batchSize`, `userAgent`, `materializeProperties` and
+`evaluationTimeout`. These options are available as constants on the `Gremlin.Net.Driver.Tokens` class.
 
-IMPORTANT: The preferred method for setting a per-request timeout for scripts is demonstrated above, but those familiar
-with bytecode may try `g.with(EVALUATION_TIMEOUT, 500)` within a script. Scripts with multiple traversals and multiple
-timeouts will be interpreted as a sum of all timeouts identified in the script for that request.
+==== Request Interceptors
+
+The `GremlinClient` supports request interceptors that can modify the HTTP request before it is sent. Each interceptor
+receives a mutable `HttpRequestContext` and can modify headers, body, URI, and method. Interceptors are executed in
+order and are useful for authentication, custom headers, or request signing.
+
+[source,csharp]
+----
+var client = new GremlinClient(new GremlinServer("localhost", 8182),
+    interceptors: new[] { Auth.BasicAuth("username", "password") });
+----
+
+When `requestSerializer` is set to `null`, the request body is passed as a `RequestMessage` to interceptors, and an
+interceptor is responsible for serializing it to `byte[]` and setting the `Content-Type` header. This follows the
+Python driver's `request_serializer=None` pattern and is useful for custom serialization workflows.
 
 anchor:gremlin-net-dsl[]
 [[gremlin-dotnet-dsl]]
