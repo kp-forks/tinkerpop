@@ -71,15 +71,22 @@ export default class GremlinLang {
     if (arg instanceof Long) {
       return String(arg.value) + 'L';
     }
-    if (arg instanceof Date) {
-      const iso = arg.toISOString();
-      return `datetime("${iso}")`;
+    if (typeof arg === 'bigint') {
+      return String(arg) + 'N';
     }
     if (typeof arg === 'number') {
       if (Number.isNaN(arg)) return 'NaN';
       if (arg === Infinity) return '+Infinity';
       if (arg === -Infinity) return '-Infinity';
-      return String(arg);
+      if (!Number.isInteger(arg)) return String(arg) + 'D';
+      if (arg >= -2147483648 && arg <= 2147483647) return String(arg);
+      // Outside safe integer range, values have lost precision and may exceed Java Long — emit as Double.
+      if (arg > Number.MAX_SAFE_INTEGER || arg < -Number.MAX_SAFE_INTEGER) return String(arg) + 'D';
+      return String(arg) + 'L';
+    }
+    if (arg instanceof Date) {
+      const iso = arg.toISOString();
+      return `datetime("${iso}")`;
     }
     if (typeof arg === 'string') {
       // JSON.stringify handles all special character escaping in one call.
