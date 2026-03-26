@@ -22,6 +22,7 @@ package gremlingo
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 	"sync"
 	"time"
 
@@ -39,19 +40,22 @@ func BasicAuth(username, password string) RequestInterceptor {
 	}
 }
 
-// Sigv4Auth returns a RequestInterceptor that signs requests using AWS SigV4.
+// SigV4Auth returns a RequestInterceptor that signs requests using AWS SigV4.
 // It uses the default AWS credential chain (env vars, shared config, IAM role, etc.)
-func Sigv4Auth(region, service string) RequestInterceptor {
-	return Sigv4AuthWithCredentials(region, service, nil)
+func SigV4Auth(region, service string) RequestInterceptor {
+	return SigV4AuthWithCredentials(region, service, nil)
 }
 
-// Sigv4AuthWithCredentials returns a RequestInterceptor that signs requests using AWS SigV4
+// SigV4AuthWithCredentials returns a RequestInterceptor that signs requests using AWS SigV4
 // with the provided credentials provider. If provider is nil, uses default credential chain.
+// If the request body has not been serialized yet (*RequestMessage), it is automatically
+// serialized to GraphBinary before signing.
 //
 // Caches the signer and credentials provider for efficiency.
-func Sigv4AuthWithCredentials(region, service string, credentialsProvider aws.CredentialsProvider) RequestInterceptor {
+func SigV4AuthWithCredentials(region, service string, credentialsProvider aws.CredentialsProvider) RequestInterceptor {
 	// Create signer once - it's stateless and safe to reuse
 	signer := v4.NewSigner()
+	serialize := SerializeRequest()
 
 	// Cache for resolved credentials provider (lazy initialization)
 	var cachedProvider aws.CredentialsProvider
@@ -59,6 +63,17 @@ func Sigv4AuthWithCredentials(region, service string, credentialsProvider aws.Cr
 	var providerErr error
 
 	return func(req *HttpRequest) error {
+		// If Body is still *RequestMessage, serialize it to GraphBinary before signing.
+		if _, ok := req.Body.(*RequestMessage); ok {
+			if err := serialize(req); err != nil {
+				return fmt.Errorf("SigV4 auto-serialization failed: %w", err)
+			}
+		}
+
+		if _, ok := req.Body.([]byte); !ok {
+			return fmt.Errorf("SigV4 signing requires body to be []byte; got %T", req.Body)
+		}
+
 		ctx := context.Background()
 
 		// Resolve credentials provider once if not provided

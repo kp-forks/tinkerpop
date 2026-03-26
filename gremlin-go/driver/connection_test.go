@@ -958,7 +958,7 @@ func TestConnectionWithMockServer(t *testing.T) {
 			connectionTimeout: 100 * time.Millisecond,
 		})
 
-		rs, err := conn.submit(&request{gremlin: "g.V()", fields: map[string]interface{}{}})
+		rs, err := conn.submit(&RequestMessage{Gremlin: "g.V()", Fields: map[string]interface{}{}})
 		assert.NoError(t, err) // submit returns nil, error goes to ResultSet
 
 		// All() blocks until stream closes, then we can check error
@@ -979,7 +979,7 @@ func TestConnectionWithMockServer(t *testing.T) {
 			enableCompression:        true,
 		})
 
-		rs, err := conn.submit(&request{gremlin: "g.V()", fields: map[string]interface{}{}})
+		rs, err := conn.submit(&RequestMessage{Gremlin: "g.V()", Fields: map[string]interface{}{}})
 		require.NoError(t, err)
 
 		select {
@@ -993,9 +993,160 @@ func TestConnectionWithMockServer(t *testing.T) {
 
 		_, _ = rs.All() // drain
 	})
+
+	t.Run("returns plain text error for non-GraphBinary 500 response", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/plain")
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Internal Server Error"))
+		}))
+		defer server.Close()
+
+		conn := newConnection(newTestLogHandler(), server.URL, &connectionSettings{})
+		rs, err := conn.submit(&RequestMessage{Gremlin: "g.V()", Fields: map[string]interface{}{}})
+		require.NoError(t, err)
+
+		_, _ = rs.All()
+		rsErr := rs.GetError()
+		require.Error(t, rsErr)
+		assert.Contains(t, rsErr.Error(), "HTTP 500")
+		assert.Contains(t, rsErr.Error(), "Internal Server Error")
+	})
+
+	t.Run("extracts message from JSON error response", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte(`{"message":"Authentication required"}`))
+		}))
+		defer server.Close()
+
+		conn := newConnection(newTestLogHandler(), server.URL, &connectionSettings{})
+		rs, err := conn.submit(&RequestMessage{Gremlin: "g.V()", Fields: map[string]interface{}{}})
+		require.NoError(t, err)
+
+		_, _ = rs.All()
+		rsErr := rs.GetError()
+		require.Error(t, rsErr)
+		assert.Equal(t, "Authentication required", rsErr.Error())
+	})
+
+	t.Run("falls back to raw body for non-JSON error response", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/html")
+			w.WriteHeader(http.StatusBadGateway)
+			w.Write([]byte("<html>Bad Gateway</html>"))
+		}))
+		defer server.Close()
+
+		conn := newConnection(newTestLogHandler(), server.URL, &connectionSettings{})
+		rs, err := conn.submit(&RequestMessage{Gremlin: "g.V()", Fields: map[string]interface{}{}})
+		require.NoError(t, err)
+
+		_, _ = rs.All()
+		rsErr := rs.GetError()
+		require.Error(t, rsErr)
+		assert.Contains(t, rsErr.Error(), "HTTP 502")
+		assert.Contains(t, rsErr.Error(), "<html>Bad Gateway</html>")
+	})
+
+	t.Run("falls through to GraphBinary deserialization for GraphBinary error responses", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", graphBinaryMimeType)
+			w.WriteHeader(http.StatusInternalServerError)
+			// Write invalid GraphBinary — the point is that we don't short-circuit
+			// to the text error path when Content-Type is GraphBinary
+			w.Write([]byte{0x00})
+		}))
+		defer server.Close()
+
+		conn := newConnection(newTestLogHandler(), server.URL, &connectionSettings{})
+		rs, err := conn.submit(&RequestMessage{Gremlin: "g.V()", Fields: map[string]interface{}{}})
+		require.NoError(t, err)
+
+		_, _ = rs.All()
+		rsErr := rs.GetError()
+		// Should get a deserialization error, NOT an "HTTP 500" text error
+		if rsErr != nil {
+			assert.NotContains(t, rsErr.Error(), "HTTP 500")
+		}
+	})
+
+	t.Run("interceptors run before serialization is checked", func(t *testing.T) {
+		var interceptorHeaders http.Header
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer server.Close()
+
+		conn := newConnection(newTestLogHandler(), server.URL, &connectionSettings{})
+		conn.AddInterceptor(func(req *HttpRequest) error {
+			interceptorHeaders = req.Headers.Clone()
+			return nil
+		})
+
+		rs, err := conn.submit(&RequestMessage{Gremlin: "g.V()", Fields: map[string]interface{}{}})
+		require.NoError(t, err)
+		_, _ = rs.All()
+
+		// Interceptor should see the default headers
+		assert.Equal(t, graphBinaryMimeType, interceptorHeaders.Get("Content-Type"))
+		assert.Equal(t, graphBinaryMimeType, interceptorHeaders.Get("Accept"))
+	})
+
+	t.Run("close waits for in-flight requests", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			time.Sleep(200 * time.Millisecond)
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer server.Close()
+
+		conn := newConnection(newTestLogHandler(), server.URL, &connectionSettings{})
+
+		rs, err := conn.submit(&RequestMessage{Gremlin: "g.V()", Fields: map[string]interface{}{}})
+		require.NoError(t, err)
+
+		start := time.Now()
+		conn.close()
+		elapsed := time.Since(start)
+
+		// close() should have waited for the in-flight goroutine
+		assert.GreaterOrEqual(t, elapsed.Milliseconds(), int64(150),
+			"close() should wait for in-flight requests to complete")
+
+		// ResultSet should be closed (goroutine finished)
+		_, _ = rs.All()
+	})
 }
 
 // Tests for connection pool configuration settings
+
+func TestTryExtractJSONError(t *testing.T) {
+	t.Run("extracts message from valid JSON", func(t *testing.T) {
+		result := tryExtractJSONError(`{"message":"auth failed","code":401}`)
+		assert.Equal(t, "auth failed", result)
+	})
+
+	t.Run("returns empty for JSON without message field", func(t *testing.T) {
+		result := tryExtractJSONError(`{"error":"something went wrong"}`)
+		assert.Equal(t, "", result)
+	})
+
+	t.Run("returns empty for invalid JSON", func(t *testing.T) {
+		result := tryExtractJSONError("not json at all")
+		assert.Equal(t, "", result)
+	})
+
+	t.Run("returns empty for HTML content", func(t *testing.T) {
+		result := tryExtractJSONError("<html><body>Error</body></html>")
+		assert.Equal(t, "", result)
+	})
+
+	t.Run("returns empty for empty string", func(t *testing.T) {
+		result := tryExtractJSONError("")
+		assert.Equal(t, "", result)
+	})
+}
 
 func TestConnectionPoolSettings(t *testing.T) {
 	t.Run("default values are applied when settings are 0", func(t *testing.T) {
@@ -1133,4 +1284,37 @@ func TestDriverRemoteConnectionSettingsWiring(t *testing.T) {
 		assert.Equal(t, 8, transport.MaxIdleConnsPerHost)
 		assert.Equal(t, 180*time.Second, transport.IdleConnTimeout)
 	})
+}
+
+// TestConnectionWithMockServer_BasicAuth verifies that BasicAuth interceptor sets the correct
+// Authorization header and the body is still valid serialized bytes.
+func TestConnectionWithMockServer_BasicAuth(t *testing.T) {
+	var capturedAuthHeader string
+	var capturedBody []byte
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedAuthHeader = r.Header.Get("Authorization")
+		body, err := io.ReadAll(r.Body)
+		if err == nil {
+			capturedBody = body
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	conn := newConnection(newTestLogHandler(), server.URL, &connectionSettings{})
+	conn.AddInterceptor(BasicAuth("testuser", "testpass"))
+
+	rs, err := conn.submit(&RequestMessage{Gremlin: "g.V()", Fields: map[string]interface{}{}})
+	require.NoError(t, err)
+	_, _ = rs.All() // drain
+
+	// BasicAuth should set Authorization header with base64("testuser:testpass") = "dGVzdHVzZXI6dGVzdHBhc3M="
+	assert.Equal(t, "Basic dGVzdHVzZXI6dGVzdHBhc3M=", capturedAuthHeader,
+		"Authorization header should be Basic base64(testuser:testpass)")
+
+	// Body should still be valid serialized bytes
+	assert.NotEmpty(t, capturedBody, "serialized body should be non-empty with BasicAuth")
+	assert.Equal(t, byte(0x81), capturedBody[0],
+		"body should start with GraphBinary version byte 0x81")
 }

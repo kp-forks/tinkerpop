@@ -22,68 +22,16 @@ package gremlingo
 import (
 	"bytes"
 	"compress/zlib"
-	"crypto/sha256"
 	"crypto/tls"
-	"encoding/hex"
+	"encoding/json"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
-	"net/url"
+	"strings"
+	"sync"
 	"time"
 )
-
-// Common HTTP header keys
-const (
-	HeaderContentType    = "Content-Type"
-	HeaderAccept         = "Accept"
-	HeaderUserAgent      = "User-Agent"
-	HeaderAcceptEncoding = "Accept-Encoding"
-	HeaderAuthorization  = "Authorization"
-)
-
-// HttpRequest represents an HTTP request that can be modified by interceptors.
-type HttpRequest struct {
-	Method  string
-	URL     *url.URL
-	Headers http.Header
-	Body    []byte
-}
-
-// NewHttpRequest creates a new HttpRequest with the given method and URL.
-func NewHttpRequest(method, rawURL string) (*HttpRequest, error) {
-	u, err := url.Parse(rawURL)
-	if err != nil {
-		return nil, err
-	}
-	return &HttpRequest{
-		Method:  method,
-		URL:     u,
-		Headers: make(http.Header),
-	}, nil
-}
-
-// ToStdRequest converts HttpRequest to a standard http.Request for signing.
-// Returns nil if the request cannot be created (invalid method or URL).
-func (r *HttpRequest) ToStdRequest() (*http.Request, error) {
-	req, err := http.NewRequest(r.Method, r.URL.String(), bytes.NewReader(r.Body))
-	if err != nil {
-		return nil, err
-	}
-	req.Header = r.Headers
-	return req, nil
-}
-
-// PayloadHash returns the SHA256 hash of the request body for SigV4 signing.
-func (r *HttpRequest) PayloadHash() string {
-	if len(r.Body) == 0 {
-		return "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" // SHA256 of empty string
-	}
-	h := sha256.Sum256(r.Body)
-	return hex.EncodeToString(h[:])
-}
-
-// RequestInterceptor is a function that modifies an HTTP request before it is sent.
-type RequestInterceptor func(*HttpRequest) error
 
 // connectionSettings holds configuration for the connection.
 type connectionSettings struct {
@@ -106,6 +54,7 @@ type connection struct {
 	logHandler   *logHandler
 	serializer   *GraphBinarySerializer
 	interceptors []RequestInterceptor
+	wg           sync.WaitGroup
 }
 
 // Connection pool defaults aligned with Java driver
@@ -171,21 +120,19 @@ func (c *connection) AddInterceptor(interceptor RequestInterceptor) {
 }
 
 // submit sends request and streams results directly to ResultSet
-func (c *connection) submit(req *request) (ResultSet, error) {
+func (c *connection) submit(req *RequestMessage) (ResultSet, error) {
 	rs := newChannelResultSet()
 
-	data, err := c.serializer.SerializeMessage(req)
-	if err != nil {
-		rs.Close()
-		return rs, err
-	}
-
-	go c.executeAndStream(data, rs)
+	c.wg.Add(1)
+	go func() {
+		defer c.wg.Done()
+		c.executeAndStream(req, rs)
+	}()
 
 	return rs, nil
 }
 
-func (c *connection) executeAndStream(data []byte, rs ResultSet) {
+func (c *connection) executeAndStream(req *RequestMessage, rs ResultSet) {
 	defer rs.Close()
 
 	// Create HttpRequest for interceptors
@@ -195,12 +142,15 @@ func (c *connection) executeAndStream(data []byte, rs ResultSet) {
 		rs.setError(err)
 		return
 	}
-	httpReq.Body = data
 
 	// Set default headers before interceptors
 	c.setHttpRequestHeaders(httpReq)
 
-	// Apply interceptors
+	// Set Body to the raw *RequestMessage so interceptors can inspect/modify it
+	httpReq.Body = req
+
+	// Apply interceptors — they see *RequestMessage in Body (pre-serialization).
+	// Interceptors may replace Body with []byte, io.Reader, or *http.Request.
 	for _, interceptor := range c.interceptors {
 		if err := interceptor(httpReq); err != nil {
 			c.logHandler.logf(Error, failedToSendRequest, err.Error())
@@ -209,26 +159,89 @@ func (c *connection) executeAndStream(data []byte, rs ResultSet) {
 		}
 	}
 
-	// Create actual http.Request from HttpRequest
-	req, err := http.NewRequest(httpReq.Method, httpReq.URL.String(), bytes.NewReader(httpReq.Body))
-	if err != nil {
-		c.logHandler.logf(Error, failedToSendRequest, err.Error())
-		rs.setError(err)
+	// After interceptors, serialize if Body is still *RequestMessage
+	if r, ok := httpReq.Body.(*RequestMessage); ok {
+		if c.serializer != nil {
+			data, err := c.serializer.SerializeMessage(r)
+			if err != nil {
+				c.logHandler.logf(Error, failedToSendRequest, err.Error())
+				rs.setError(err)
+				return
+			}
+			httpReq.Body = data
+		} else {
+			errMsg := "request body was not serialized; either provide a serializer or add an interceptor that serializes the request"
+			c.logHandler.logf(Error, failedToSendRequest, errMsg)
+			rs.setError(fmt.Errorf("%s", errMsg))
+			return
+		}
+	}
+
+	// Create actual http.Request from HttpRequest based on Body type
+	var httpGoReq *http.Request
+	switch body := httpReq.Body.(type) {
+	case []byte:
+		httpGoReq, err = http.NewRequest(httpReq.Method, httpReq.URL.String(), bytes.NewReader(body))
+		if err != nil {
+			c.logHandler.logf(Error, failedToSendRequest, err.Error())
+			rs.setError(err)
+			return
+		}
+		httpGoReq.Header = httpReq.Headers
+	case io.Reader:
+		httpGoReq, err = http.NewRequest(httpReq.Method, httpReq.URL.String(), body)
+		if err != nil {
+			c.logHandler.logf(Error, failedToSendRequest, err.Error())
+			rs.setError(err)
+			return
+		}
+		httpGoReq.Header = httpReq.Headers
+	case *http.Request:
+		httpGoReq = body
+	default:
+		errMsg := fmt.Sprintf("unsupported body type after interceptors: %T", body)
+		c.logHandler.logf(Error, failedToSendRequest, errMsg)
+		rs.setError(fmt.Errorf("%s", errMsg))
 		return
 	}
-	req.Header = httpReq.Headers
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.httpClient.Do(httpGoReq)
 	if err != nil {
 		c.logHandler.logf(Error, failedToSendRequest, err.Error())
 		rs.setError(err)
 		return
 	}
 	defer func() {
+		// Drain any unread bytes so the connection can be reused gracefully.
+		// Without this, Go's HTTP client sends a TCP RST instead of FIN,
+		// causing "Connection reset by peer" errors on the server.
+		io.Copy(io.Discard, resp.Body)
 		if err := resp.Body.Close(); err != nil {
 			c.logHandler.logf(Debug, failedToCloseResponseBody, err.Error())
 		}
 	}()
+
+	// If the HTTP status indicates an error and the response is not GraphBinary,
+	// read the body as a text/JSON error message instead of attempting binary
+	// deserialization which would produce cryptic errors.
+	contentType := resp.Header.Get(HeaderContentType)
+	if resp.StatusCode >= 400 && !strings.Contains(contentType, graphBinaryMimeType) {
+		bodyBytes, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			c.logHandler.logf(Error, failedToReceiveResponse, readErr.Error())
+			rs.setError(fmt.Errorf("Gremlin Server returned HTTP %d and failed to read body: %w",
+				resp.StatusCode, readErr))
+			return
+		}
+		errorBody := string(bodyBytes)
+		errorMsg := tryExtractJSONError(errorBody)
+		if errorMsg == "" {
+			errorMsg = fmt.Sprintf("Gremlin Server returned HTTP %d: %s", resp.StatusCode, errorBody)
+		}
+		c.logHandler.logf(Error, failedToReceiveResponse, errorMsg)
+		rs.setError(fmt.Errorf("%s", errorMsg))
+		return
+	}
 
 	reader, zlibReader, err := c.getReader(resp)
 	if err != nil {
@@ -308,6 +321,23 @@ func (c *connection) streamToResultSet(reader io.Reader, rs ResultSet) {
 	}
 }
 
+// tryExtractJSONError attempts to extract an error message from a JSON response body.
+// The server sometimes responds with a JSON object containing a "message" field
+// even when it cannot produce a GraphBinary response.
+func tryExtractJSONError(body string) string {
+	var obj map[string]interface{}
+	if err := json.Unmarshal([]byte(body), &obj); err != nil {
+		return ""
+	}
+	if msg, ok := obj["message"]; ok {
+		if s, ok := msg.(string); ok {
+			return s
+		}
+	}
+	return ""
+}
+
 func (c *connection) close() {
+	c.wg.Wait()
 	c.httpClient.CloseIdleConnections()
 }
