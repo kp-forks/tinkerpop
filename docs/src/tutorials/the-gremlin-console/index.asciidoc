@@ -561,7 +561,6 @@ other libraries into the console with the `:install` command. With `:install`, y
 coordinates (i.e. group, artifact, and version) of a library to have it automatically downloaded from a Maven
 repository and placed into the console classpath. If you have read through the reference documentation, you would find
 a number of examples of `:install` usage to bring in unbundled TinkerPop libraries, like
-link:https://tinkerpop.apache.org/docs/x.y.z/reference/#neo4j-gremlin[neo4j-gremlin] or
 link:https://tinkerpop.apache.org/docs/x.y.z/reference/#hadoop-gremlin[hadoop-gremlin].
 
 IMPORTANT: Before you use the `:install` command, please be sure to read the reference documentation on

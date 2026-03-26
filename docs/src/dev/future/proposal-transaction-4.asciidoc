@@ -23,6 +23,7 @@ image::apache-tinkerpop-logo.png[width=500,link="https://tinkerpop.apache.org"]
 == TinkerGraph Transaction Support
 
 === Introduction
+
 Now, if you need to use transactions in TinkerPop, the only solution is to use the Neo4j plugin. Unfortunately, this plugin has not been updated for a long time and is only compatible with Neo4j version 3.4, which reached end of life in March 2020. Gremlin cannot be used as a replacement for other graphs that support transactions.
 
 === Motivation

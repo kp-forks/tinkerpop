@@ -45,8 +45,6 @@ BEGIN {
     }
     print "g = graph.traversal()"
     print "marko = g.V().has('name', 'marko').tryNext().orElse(null)"
-    print "f = new File('/tmp/neo4j')"
-    print "if (f.exists()) f.deleteDir()"
     print "f = new File('/tmp/tinkergraph.kryo')"
     print "if (f.exists()) f.deleteDir()"
     print ":set max-iteration 100"

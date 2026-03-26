@@ -231,21 +231,21 @@ gremlin> :plugin list  <1>
 ==>tinkerpop.tinkergraph[active]
 gremlin> :plugin use tinkerpop.sugar  <2>
 ==>tinkerpop.sugar activated
-gremlin> :install org.apache.tinkerpop neo4j-gremlin x.y.z  <3>
-==>loaded: [org.apache.tinkerpop, neo4j-gremlin, x.y.z]
+gremlin> :install org.apache.tinkerpop hadoop-gremlin x.y.z  <3>
+==>loaded: [org.apache.tinkerpop, hadoop-gremlin, x.y.z]
 gremlin> :plugin list <4>
 ==>tinkerpop.server[active]
 ==>tinkerpop.utilities[active]
-==>tinkerpop.sugar
+==>tinkerpop.sugar[active]
 ==>tinkerpop.tinkergraph[active]
-==>tinkerpop.neo4j
-gremlin> :plugin use tinkerpop.neo4j <5>
-==>tinkerpop.neo4j activated
+==>tinkerpop.hadoop
+gremlin> :plugin use tinkerpop.hadoop <5>
+==>tinkerpop.hadoop activated
 gremlin> :plugin list <6>
 ==>tinkerpop.server[active]
 ==>tinkerpop.sugar[active]
 ==>tinkerpop.utilities[active]
-==>tinkerpop.neo4j[active]
+==>tinkerpop.hadoop[active]
 ==>tinkerpop.tinkergraph[active]
 ----
 
@@ -254,9 +254,9 @@ the Console classpath.  Plugins need to be "active" for their features to be ava
 <2> To make a plugin "active" execute the `:plugin use` command and specify the name of the plugin to enable.
 <3> Sometimes there are external dependencies that would be useful within the Console.  To bring those in, execute
 `:install` and specify the Maven coordinates for the dependency.
-<4> Note that there is a "tinkerpop.neo4j" plugin available, but it is not yet "active".
-<5> Again, to use the "tinkerpop.neo4j" plugin, it must be made "active" with `:plugin use`.
-<6> Now when the plugin list is displayed, the "tinkerpop.neo4j" plugin is displayed as "active".
+<4> Note that there is a "tinkerpop.hadoop" plugin available, but it is not yet "active".
+<5> Again, to use the "tinkerpop.hadoop" plugin, it must be made "active" with `:plugin use`.
+<6> Now when the plugin list is displayed, the "tinkerpop.hadoop" plugin is displayed as "active".
 
 WARNING: Plugins must be compatible with the version of the Gremlin Console (or Gremlin Server) being used.  Attempts
 to use incompatible versions cannot be guaranteed to work.  Moreover, be prepared for dependency conflicts in
@@ -741,11 +741,11 @@ string argument with by setting the `language` key.
 The `gremlin-server.sh` file serves multiple purposes.  It can be used to "install" dependencies to the Gremlin
 Server path.  For example, to be able to configure and use other `Graph` implementations, the dependencies must be
 made available to Gremlin Server.  To do this, use the `install` switch and supply the Maven coordinates for the
-dependency to "install".  For example, to use Neo4j in Gremlin Server:
+dependency to "install".  For example, to use Hadoop in Gremlin Server:
 
 [source,text]
 ----
-bin/gremlin-server.sh install org.apache.tinkerpop neo4j-gremlin x.y.z
+bin/gremlin-server.sh install org.apache.tinkerpop hadoop-gremlin x.y.z
 ----
 
 This command will "grab" the appropriate dependencies and copy them to the `ext` directory of Gremlin Server, which
@@ -2199,14 +2199,9 @@ This plugin imports the appropriate classes for managing the credentials graph.
 === Graph Plugins
 
 This section does not refer to a specific Gremlin Plugin, but a class of them. Graph Plugins are typically created by
-graph providers to make it easy to integrate their graph systems into Gremlin Console and Gremlin Server. As TinkerPop
-provides two reference `Graph` implementations in <<tinkergraph-gremlin,TinkerGraph>> and <<neo4j-gremlin,Neo4j>>,
-there is also one Gremlin Plugin for each of them.
-
-The TinkerGraph plugin is installed and activated in the Gremlin Console by default and the sample configurations that
+graph providers to make it easy to integrate their graph systems into Gremlin Console and Gremlin Server. The
+TinkerGraph plugin is installed and activated in the Gremlin Console by default and the sample configurations that
 are supplied with the Gremlin Server distribution include the `TinkerGraphGremlinPlugin` as part of the default setup.
-If using Neo4j, however, the plugin must be installed manually. Instructions for doing so can be found in the
-<<neo4j-gremlin,Neo4j>> section.
 
 [[hadoop-plugin]]
 === Hadoop Plugin

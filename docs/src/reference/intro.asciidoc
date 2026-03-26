@@ -544,8 +544,8 @@ prevent a developer from making design choices that can limit its protective pow
 There are several places to be concerned when considering this issue:
 
 * *Data types* - Different graphs will support different types of data. Something like TinkerGraph will accept any JVM
-object, but another graph like Neo4j has a small tight subset of possible types. Choosing a type that is exotic or
-perhaps is a custom type that only a specific graph supports might create migration friction should the need arise.
+object, but another graph like Amazon Neptune has an explicit subset of possible types. Choosing a type that is exotic
+or perhaps is a custom type that only a specific graph supports might create migration friction should the need arise.
 * *Schemas/Indices* - TinkerPop does not provide abstractions for schemas and/or index management. Users will work
 directly with the API of the graph provider. It is considered good practice to attempt to enclose such code in a
 graph provider specific class or set of classes to isolate or abstract it.

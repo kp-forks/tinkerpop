@@ -281,8 +281,7 @@ func TestTraversal(t *testing.T) {
 	//	addNodeValidateTransactionState(t, g, gtx2, 0, 2, tx1, tx2)
 	//
 	//	// someone gets lazy and doesn't commit/rollback and just calls close() - the graph
-	//	// will decide how to treat the transaction, but for neo4j/gremlin server in this
-	//	// test configuration it should rollback
+	//	// will decide how to treat the transaction
 	//	tx1.Close()
 	//	tx2.Close()
 	//
@@ -317,8 +316,7 @@ func TestTraversal(t *testing.T) {
 	//
 	//	// someone gets lazy and doesn't commit/rollback and just calls Close() but on the parent
 	//	// DriverRemoteConnection for all the session that were created via Tx() - the graph
-	//	// will decide how to treat the transaction, but for neo4j/gremlin server in this
-	//	// test configuration it should rollback.
+	//	// will decide how to treat the transaction
 	//	remote.Close()
 	//
 	//	assert.False(t, tx1.IsOpen())

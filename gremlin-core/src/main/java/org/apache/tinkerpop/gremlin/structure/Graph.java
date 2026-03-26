@@ -491,10 +491,7 @@ public interface Graph extends AutoCloseable, Host {
 
             /**
              * Determines if the {@code Graph} implementation supports more than one connection to the same instance
-             * at the same time.  For example, Neo4j embedded does not support this feature because concurrent
-             * access to the same database files by multiple instances is not possible.  However, Neo4j HA could
-             * support this feature as each new {@code Graph} instance coordinates with the Neo4j cluster allowing
-             * multiple instances to operate on the same database.
+             * at the same time.
              */
             @FeatureDescriptor(name = FEATURE_CONCURRENT_ACCESS)
             default boolean supportsConcurrentAccess() {

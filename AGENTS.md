@@ -88,12 +88,6 @@ guidance here when there is a conflict.
   mvn clean install -DskipIntegrationTests=false
   ```
 
-- Include Neo4j tests:
-
-  ```bash
-  mvn clean install -DincludeNeo4j
-  ```
-
 ### 4.3 Gremlin Language Variant (GLV) builds
 
 Build Gremlin Server first:

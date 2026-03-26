@@ -55,7 +55,7 @@ import static org.apache.tinkerpop.gremlin.LoadGraphWith.GraphData;
 @CucumberOptions(
         tags = "not @GraphComputerOnly and not @TinkerServiceRegistry and not @InsertionOrderingRequired and not @StepWrite",
         glue = { "org.apache.tinkerpop.gremlin.features" },
-        objectFactory = GuiceFactory.class,
+        objectFactory = HadoopGraphFeatureIntegrateTest.HadoopGraphGuiceFactory.class,
         features = { "classpath:/org/apache/tinkerpop/gremlin/test/features" },
         plugin = {"progress", "junit:target/cucumber.xml"})
 public class HadoopGraphFeatureIntegrateTest {
@@ -150,10 +150,9 @@ public class HadoopGraphFeatureIntegrateTest {
         }
     }
 
-    public static final class WorldInjectorSource implements InjectorSource {
-        @Override
-        public Injector getInjector() {
-            return Guice.createInjector(Stage.PRODUCTION, CucumberModules.createScenarioModule(), new ServiceModule());
+    public static class HadoopGraphGuiceFactory extends org.apache.tinkerpop.gremlin.features.AbstractGuiceFactory {
+        public HadoopGraphGuiceFactory() {
+            super(Guice.createInjector(Stage.PRODUCTION, CucumberModules.createScenarioModule(), new ServiceModule()));
         }
     }
 

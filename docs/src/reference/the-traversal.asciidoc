@@ -211,8 +211,8 @@ IMPORTANT: As transactions are `ThreadLocal` in nature, so are the transaction c
 `onClose`.
 
 Once there is an understanding for how transactions are configured, most of the rest of the `Transaction` interface
-is self-explanatory. Note that <<neo4j-gremlin,Neo4j-Gremlin>> is used for the examples to follow as TinkerGraph does
-not support transactions.
+is self-explanatory. Note that `TinkerTransactionGraph` is used for the examples to follow as standard `TinkerGraph`
+does not support transactions.
 
 IMPORTANT: The following example is meant to demonstrate specific use of `ThreadLocal` transactions and is at odds
 with the more generalized transaction convention that is recommended for both embedded and remote contexts. Please be
@@ -221,39 +221,39 @@ using this method.
 
 [source,groovy]
 ----
-gremlin> graph = Neo4jGraph.open('/tmp/neo4j')
-==>neo4jgraph[EmbeddedGraphDatabase [/tmp/neo4j]]
+gremlin> graph = TinkerTransactionGraph.open()
+==>tinkertransactiongraph[vertices:0 edges:0]
 gremlin> g = traversal().with(graph)
-==>graphtraversalsource[neo4jgraph[community single [/tmp/neo4j]], standard]
+==>graphtraversalsource[tinkertransactiongraph[vertices:0 edges:0], standard]
 gremlin> graph.features()
 ==>FEATURES
 > GraphFeatures
 >-- Transactions: true  <1>
 >-- Computer: false
->-- Persistence: true
+>-- Persistence: false
 ...
 gremlin> g.tx().onReadWrite(Transaction.READ_WRITE_BEHAVIOR.AUTO) <2>
-==>org.apache.tinkerpop.gremlin.neo4j.structure.Neo4jGraph$Neo4jTransaction@1c067c0d
-gremlin> g.addV("person").("name","stephen")  <3>
+==>org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerTransactionGraph$TinkerTransaction@1c067c0d
+gremlin> g.addV("person").property("name","stephen")  <3>
 ==>v[0]
 gremlin> g.tx().commit() <4>
 ==>null
 gremlin> g.tx().onReadWrite(Transaction.READ_WRITE_BEHAVIOR.MANUAL) <5>
-==>org.apache.tinkerpop.gremlin.neo4j.structure.Neo4jGraph$Neo4jTransaction@1c067c0d
+==>org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerTransactionGraph$TinkerTransaction@1c067c0d
 gremlin> g.tx().isOpen()
 ==>false
-gremlin> g.addV("person").("name","marko") <6>
+gremlin> g.addV("person").property("name","marko") <6>
 Open a transaction before attempting to read/write the transaction
 gremlin> g.tx().open() <7>
 ==>null
-gremlin> g.addV("person").("name","marko") <8>
+gremlin> g.addV("person").property("name","marko") <8>
 ==>v[1]
 gremlin> g.tx().commit()
 ==>null
 ----
 
 <1> Check `features` to ensure that the graph supports transactions.
-<2> By default, `Neo4jGraph` is configured with "automatic" transactions, so it is set here for demonstration purposes only.
+<2> By default, `TinkerTransactionGraph` is configured with "automatic" transactions, so it is set here for demonstration purposes only.
 <3> When the vertex is added, the transaction is automatically started.  From this point, more mutations can be staged
 or other read operations executed in the context of that open transaction.
 <4> Calling `commit` finalizes the transaction.
@@ -2417,7 +2417,7 @@ serialization package for the JVM. Gremlin-Kryo is a binary `Graph` serializatio
 languages. It is designed to be space efficient, non-lossy and is promoted as the standard format to use when working
 with graph data inside of the TinkerPop stack. A list of common use cases is presented below:
 
-* Migration from one Gremlin Structure implementation to another (e.g. `TinkerGraph` to `Neo4jGraph`)
+* Migration from one Gremlin Structure implementation to another (e.g. `TinkerGraph` to `JanusGraph`)
 * Serialization of individual graph elements to be sent over the network to another JVM.
 * Backups of in-memory graphs or subgraphs.
 

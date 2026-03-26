@@ -5,7 +5,7 @@ env:
   # take care when modifying this list because GLVs use shell commands to remove themselves from this list and
   # modifications could break patterns of replacement they are searching for.
   EXCLUDE_MODULES: '-:gremlin-dotnet-source,-:gremlin-dotnet-tests,-:gremlin-go,-:gremlin-js,-:gremlin-javascript,-:gremlint,-:gremlin-mcp,-:gremlin-python'
-  EXCLUDE_FOR_GLV: '-:gremlin-annotations,-:gremlin-console,-:hadoop-gremlin,-:neo4j-gremlin,-:spark-gremlin,-:sparql-gremlin'
+  EXCLUDE_FOR_GLV: '-:gremlin-annotations,-:gremlin-console,-:hadoop-gremlin,-:spark-gremlin,-:sparql-gremlin'
 jobs:
   smoke:
     name: smoke
@@ -67,7 +67,7 @@ jobs:
       - name: Build with Maven
         run: |
           mvn clean install -pl $EXCLUDE_MODULES -q -DskipTests -Dci
-          mvn verify -pl :gremlin-server -DskipTests -DskipIntegrationTests=false -DincludeNeo4j
+          mvn verify -pl :gremlin-server -DskipTests -DskipIntegrationTests=false
   cache-gremlin-server-docker-image:
       name: cache gremlin-server docker image
       timeout-minutes: 10
@@ -329,22 +329,6 @@ jobs:
           EXCLUDE="${EXCLUDE_MODULES/-:gremlin-dotnet-source,-:gremlin-dotnet-tests,},$EXCLUDE_FOR_GLV"
           mvn clean install -pl $EXCLUDE -q -DskipTests -Dci
           mvn verify -pl :gremlin-dotnet,:gremlin-dotnet-tests -P gremlin-dotnet
-  neo4j-gremlin:
-    name: neo4j-gremlin
-    timeout-minutes: 20
-    needs: smoke
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - name: Set up JDK11
-        uses: actions/setup-java@v5
-        with:
-          java-version: '11'
-          distribution: 'temurin'
-      - name: Build with Maven
-        run: |
-          mvn clean install -pl $EXCLUDE_MODULES -q -DskipTests -Dci
-          mvn verify -pl :neo4j-gremlin -DincludeNeo4j
   go:
     name: go
     timeout-minutes: 20

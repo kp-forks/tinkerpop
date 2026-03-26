@@ -305,8 +305,7 @@ class TestTraversal(object):
         add_node_validate_transaction_state(g, gtx2, 0, 2, [tx1, tx2])
 
         # someone gets lazy and doesn't commit/rollback and just calls close() - the graph
-        # will decide how to treat the transaction, but for neo4j/gremlin server in this
-        # test configuration it should rollback
+        # will decide how to treat the transaction
         tx1.close()
         tx2.close()
 
@@ -342,8 +341,7 @@ class TestTraversal(object):
 
         # someone gets lazy and doesn't commit/rollback and just calls close() but on the parent
         # DriverRemoteConnection for all the session that were created via tx() - the graph
-        # will decide how to treat the transaction, but for neo4j/gremlin server in this
-        # test configuration it should rollback
+        # will decide how to treat the transaction
         remote_conn.close()
 
         assert not tx1.isOpen()
