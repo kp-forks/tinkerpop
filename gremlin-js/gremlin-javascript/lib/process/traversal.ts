@@ -73,11 +73,16 @@ export class Traversal {
    */
   hasNext() {
     return this._applyStrategies().then(
-      () =>
-        this.results &&
-        this.results.length > 0 &&
-        this._resultsIteratorIndex < this.results.length &&
-        this.results[this._resultsIteratorIndex] instanceof Traverser ? this.results[this._resultsIteratorIndex].bulk > 0 : true,
+      () => {
+        if (!this.results || this.results.length <= 0 || this._resultsIteratorIndex >= this.results.length) {
+          return false;
+        }
+        if (this.results[this._resultsIteratorIndex] instanceof Traverser) {
+          return this.results[this._resultsIteratorIndex].bulk > 0 || this._resultsIteratorIndex + 1 < this.results.length;
+        } else {
+          return true;
+        }
+      }
     );
   }
 

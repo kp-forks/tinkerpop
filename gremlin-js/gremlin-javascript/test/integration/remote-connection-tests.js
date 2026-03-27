@@ -25,6 +25,7 @@ import assert from 'assert';
 import { Vertex } from '../../lib/structure/graph.js';
 import anon from '../../lib/process/anonymous-traversal.js';
 import { getConnection, getClient } from '../helper.js';
+import {P} from "../../lib/process/traversal.js";
 
 let connection;
 let client;
@@ -62,6 +63,16 @@ describe('DriverRemoteConnection', function () {
           assert.ok(err.statusAttributes.has('exceptions'));
           assert.ok(err.statusAttributes.has('stackTrace'));
         });
+    });
+    it('should iterate ordered results', async function () {
+      const g = anon.traversal().with_(connection);
+      const traversal = g.V().has('name', P.within('marko', 'peter')).values('name').order();
+      const first = await traversal.next();
+      assert.strictEqual(first.value, 'marko');
+      assert.strictEqual(await traversal.hasNext(), true);
+      const second = await traversal.next();
+      assert.strictEqual(second.value, 'peter');
+      assert.strictEqual(await traversal.hasNext(), false);
     });
   });
 });
