@@ -17,10 +17,29 @@
  * under the License.
  */
 
-const { removeModuleScopePlugin, override, babelInclude } = require('customize-cra');
-const path = require('path');
+/// <reference types="vitest" />
+import path from 'path';
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
-module.exports = override(
-  removeModuleScopePlugin(),
-  babelInclude([path.resolve('src'), path.resolve('./package-lock.json')]),
-);
+export default defineConfig({
+  plugins: [react()],
+  base: '/gremlint',
+  resolve: {
+    dedupe: ['react', 'react-dom'],
+    alias: {
+      react: path.resolve('./node_modules/react'),
+      'react-dom': path.resolve('./node_modules/react-dom'),
+    },
+  },
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./src/setupTests.ts'],
+    globals: true,
+    server: {
+      deps: {
+        inline: ['sharp-router'],
+      },
+    },
+  },
+});
