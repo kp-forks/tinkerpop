@@ -232,14 +232,14 @@ public class GremlinServerHttpTransactionIntegrateTest extends AbstractGremlinSe
             assertEquals(200, r.getStatusLine().getStatusCode());
         }
 
-        // #10: submit traversal on committed tx -> 404
+        // submit traversal on committed tx -> 404
         try (final CloseableHttpResponse r = submitInTx(client, txId, "g.V().count()", GTX)) {
             assertEquals(404, r.getStatusLine().getStatusCode());
             final String msg = extractStatusMessage(r);
             assertTrue(msg.contains("Transaction not found"));
         }
 
-        // #13: commit again on committed tx -> 404
+        // commit again on committed tx -> 404
         try (final CloseableHttpResponse r = commitTx(client, txId, GTX)) {
             assertEquals(404, r.getStatusLine().getStatusCode());
             final String msg = extractStatusMessage(r);
@@ -266,14 +266,14 @@ public class GremlinServerHttpTransactionIntegrateTest extends AbstractGremlinSe
             assertEquals(200, r.getStatusLine().getStatusCode());
         }
 
-        // #11: submit traversal on rolled-back tx -> 404
+        // submit traversal on rolled-back tx -> 404
         try (final CloseableHttpResponse r = submitInTx(client, txId, "g.V().count()", GTX)) {
             final String msg = extractStatusMessage(r);
             assertEquals(404, r.getStatusLine().getStatusCode());
             assertTrue(msg.contains("Transaction not found"));
         }
 
-        // #14: rollback again on rolled-back tx -> 404
+        // rollback again on rolled-back tx -> 404
         try (final CloseableHttpResponse r = rollbackTx(client, txId, GTX)) {
             assertEquals(404, r.getStatusLine().getStatusCode());
             final String msg = extractStatusMessage(r);
@@ -283,12 +283,12 @@ public class GremlinServerHttpTransactionIntegrateTest extends AbstractGremlinSe
 
     @Test
     public void shouldReturnValidTransactionId() throws Exception {
-        // #20: begin returns a valid transaction ID
+        // begin returns a valid transaction ID
         final String txId1 = beginTx(client, GTX);
         assertNotNull(txId1);
         assertFalse(txId1.isBlank());
 
-        // #27: second begin returns a different ID
+        // second begin returns a different ID
         final String txId2 = beginTx(client, GTX);
         assertNotNull(txId2);
         assertFalse(txId2.isBlank());

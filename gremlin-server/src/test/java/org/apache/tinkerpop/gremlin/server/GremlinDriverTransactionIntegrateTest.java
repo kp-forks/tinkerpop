@@ -103,18 +103,18 @@ public class GremlinDriverTransactionIntegrateTest extends AbstractGremlinServer
 
         final RemoteTransaction tx = cluster.transact(GTX);
         tx.begin();
-        // #4: isOpen true after begin
+        // isOpen true after begin
         assertTrue(tx.isOpen());
 
         tx.submit("g.addV('person').property('name','alice')");
 
-        // #6: uncommitted data not visible outside the transaction
+        // uncommitted data not visible outside the transaction
         assertEquals(0L, client.submit("g.V().hasLabel('person').count()").one().getLong());
 
         tx.commit();
-        // #4: isOpen false after commit
+        // isOpen false after commit
         assertFalse(tx.isOpen());
-        // #1, #7: committed data visible to non-transactional reads
+        // committed data visible to non-transactional reads
         assertEquals(1L, client.submit("g.V().hasLabel('person').count()").one().getLong());
 
         client.close();
@@ -131,9 +131,9 @@ public class GremlinDriverTransactionIntegrateTest extends AbstractGremlinServer
         tx.submit("g.addV('person').property('name','bob')");
 
         tx.rollback();
-        // #5: isOpen false after rollback
+        // isOpen false after rollback
         assertFalse(tx.isOpen());
-        // #2: data discarded after rollback
+        // data discarded after rollback
         assertEquals(0L, client.submit("g.V().hasLabel('person').count()").one().getLong());
 
         client.close();
@@ -146,7 +146,7 @@ public class GremlinDriverTransactionIntegrateTest extends AbstractGremlinServer
         final RemoteTransaction tx = cluster.transact(GTX);
         tx.begin();
         tx.submit("g.addV('test').property('name','A')");
-        // #8: read-your-own-writes — vertex A visible within the transaction
+        // read-your-own-writes — vertex A visible within the transaction
         assertEquals(1L, tx.submit("g.V().hasLabel('test').count()").all().get().get(0).getLong());
 
         tx.submit("g.addV('test').property('name','B')");
@@ -158,7 +158,7 @@ public class GremlinDriverTransactionIntegrateTest extends AbstractGremlinServer
 
         tx.commit();
 
-        // #3: vertices and edges persist after commit
+        // vertices and edges persist after commit
         assertEquals(2L, client.submit("g.V().hasLabel('test').count()").all().get().get(0).getLong());
         assertEquals(1L, client.submit("g.E().hasLabel('knows').count()").all().get().get(0).getLong());
     }

@@ -189,6 +189,57 @@ The WebSocket-specific settings (`TransporterType`, `ReadBufferSize`, `WriteBuff
 `NewConnectionThreshold`, `Session`) have been removed. New HTTP connection pool settings have been added:
 `MaximumConcurrentConnections`, `MaxIdleConnections`, `IdleConnectionTimeout`, and `KeepAliveInterval`.
 
+==== Transactions Re-enabled
+
+IMPORTANT: The remote transaction API is still under active discussion and the specification has not been finalized.
+This implementation is experimental and subject to breaking changes in future releases. It is provided to enable early
+feedback and testing, but should not be relied upon for production use until the specification is complete.
+
+The 4.0.0-beta.1 release disabled transactions and noted that `tx()` would return an error. Transactions have now been
+re-enabled over HTTP for both Gremlin Server and the Java driver. The transaction model uses server-managed sessions
+where each transaction is identified by a server-generated transaction ID that the client passes on subsequent requests.
+
+The basic lifecycle is: begin a transaction, submit one or more traversals within it, then commit or rollback. Data
+written inside a transaction is isolated from other clients until committed.
+
+Transactions also work through `DriverRemoteConnection` with the familiar `g.tx()` pattern:
+
+[source,java]
+----
+final GraphTraversalSource g = traversal().with(DriverRemoteConnection.using(cluster, "g"));
+final GraphTraversalSource gtx = g.tx().begin();
+gtx.addV("person").iterate();
+gtx.tx().commit();
+----
+
+The `RemoteTransaction` can be used directly from `Cluster.transact()`:
+
+[source,java]
+----
+final Cluster cluster = Cluster.open();
+
+// begin, write, and commit
+final RemoteTransaction tx = cluster.transact("g");
+tx.begin();
+tx.submit("g.addV('person').property('name','alice')");
+tx.commit();
+----
+
+The `RemoteTransaction` also supports configurable close behavior. By default, `close()` commits the transaction. To
+rollback on close instead:
+
+[source,java]
+----
+final RemoteTransaction tx = cluster.transact("g");
+tx.onClose(Transaction.CLOSE_BEHAVIOR.ROLLBACK);
+tx.begin();
+tx.submit("g.addV('person')");
+tx.close(); // rolls back instead of committing
+----
+
+NOTE: The current implementation creates a dedicated HTTP connection pool per transaction. Connection sharing between
+requests will be improved in the final release for better resource efficiency and performance.
+
 === Upgrading for Providers
 
 ==== Graph System Providers
