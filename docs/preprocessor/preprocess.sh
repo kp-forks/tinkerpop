@@ -46,11 +46,6 @@ if [ "${DRYRUN_DOCS}" != "*" ]; then
     exit 1
   }
 
-  if [ -e /tmp/neo4j ]; then
-    echo "The directory '/tmp/neo4j' is required by the pre-processor, be sure to delete it before processing the docs."
-    exit 1
-  fi
-
   if [ -e /tmp/tinkergraph.kryo ]; then
     echo "The file '/tmp/tinkergraph.kryo' is required by the pre-processor, be sure to delete it before processing the docs."
     exit 1
@@ -148,7 +143,7 @@ done
 tput smam
 [[ "${COLUMNS}" != "" ]] && stty cols ${COLS}
 
-rm -rf /tmp/neo4j /tmp/tinkergraph.kryo
+rm -rf /tmp/tinkergraph.kryo
 
 [ ${ec} -eq 0 ] || exit 1
 

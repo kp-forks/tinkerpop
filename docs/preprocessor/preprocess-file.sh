@@ -104,25 +104,12 @@ if [ ! ${SKIP} ] && [ $(grep -c '^\[gremlin' ${input}) -gt 0 ]; then
   doc=`basename ${input} .asciidoc`
 
   case "${doc}" in
-    "implementations-neo4j")
-      # deactivate Spark plugin to prevent version conflicts between TinkerPop's Spark jars and Neo4j's Spark jars
-      mkdir .ext
-      mv ext/spark-gremlin .ext/
-      cat ext/plugins.txt | tee .ext/plugins.all | grep -Fv 'SparkGremlinPlugin' > .ext/plugins.txt
-      ;;
-    "implementations-hadoop-start" | "implementations-hadoop-end" | "implementations-spark" | "olap-spark-yarn")
-      # deactivate Neo4j plugin to prevent version conflicts between TinkerPop's Spark jars and Neo4j's Spark jars
-      mkdir .ext
-      mv ext/neo4j-gremlin .ext/
-      cat ext/plugins.txt | tee .ext/plugins.all | grep -Fv 'Neo4jGremlinPlugin' > .ext/plugins.txt
-      ;;
     "gremlin-variants")
       # deactivate plugin to prevent version conflicts
       mkdir .ext
-      mv ext/neo4j-gremlin .ext/
       mv ext/spark-gremlin .ext/
       mv ext/hadoop-gremlin .ext/
-      cat ext/plugins.txt | tee .ext/plugins.all | grep -v 'Neo4jGremlinPlugin\|SparkGremlinPlugin\|HadoopGremlinPlugin' > .ext/plugins.txt
+      cat ext/plugins.txt | tee .ext/plugins.all | grep -v 'SparkGremlinPlugin\|HadoopGremlinPlugin' > .ext/plugins.txt
       ;;
   esac
 

@@ -48,5 +48,3 @@ providers can be found in the link:https://tinkerpop.apache.org/docs/x.y.z/dev/p
 include::release.asciidoc[]
 
 include::administration.asciidoc[]
-
-include::meetings.asciidoc[]

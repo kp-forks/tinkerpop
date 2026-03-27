@@ -279,7 +279,7 @@ can cause problems for some graph providers.
 * Tests that are designed to use a `GraphProvider` implementation in conjunction with `AbstractGremlinTest` _and_ are
 in the `/test` directory should not be named with `Test` as the suffix, as this will cause them to execute in some
 environments without a `GraphProvider` being initialized by a suite. These types of tests should be suffixed with
-`Check` instead. Please see link:https://github.com/apache/tinkerpop/blob/e32a4187e4f25e290aabe14007f9087c48a06521/neo4j-gremlin/src/test/java/org/apache/tinkerpop/gremlin/neo4j/structure/NativeNeo4jStructureCheck.java[NativeNeo4jStructureCheck]
+`Check` instead. Please see link:https://github.com/apache/tinkerpop/blob/master/spark-gremlin/src/test/java/org/apache/tinkerpop/gremlin/spark/structure/io/SparkIoRegistryCheck.java[SparkIoRegistryCheck]
 for an example.
 
 [[gremlin-language-test-cases]]

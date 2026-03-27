@@ -20,7 +20,6 @@
 
 RUN_TESTS=
 RUN_INTEGRATION_TESTS=
-INCLUDE_NEO4J=
 BUILD_JAVA_DOCS=
 BUILD_USER_DOCS=
 INCLUDE_GO=
@@ -33,7 +32,6 @@ while [ ! -z "$1" ]; do
   case "$1" in
     -t  | --tests ) RUN_TESTS=true; shift ;;
     -i  | --integration-tests ) RUN_INTEGRATION_TESTS=true; shift ;;
-    -n  | --neo4j ) INCLUDE_NEO4J=true; shift ;;
     -j  | --java-docs ) BUILD_JAVA_DOCS=true; shift ;;
     -d  | --docs ) BUILD_USER_DOCS=true; shift ;;
     -go | --golang ) INCLUDE_GO=true; shift ;;
@@ -49,14 +47,13 @@ TINKERPOP_BUILD_OPTIONS="-DskipImageBuild -P -glv-js,-glv-go,-glv-python"
 
 [ -z "${RUN_TESTS}" ] && TINKERPOP_BUILD_OPTIONS="${TINKERPOP_BUILD_OPTIONS} -DskipTests"
 [ -z "${RUN_INTEGRATION_TESTS}" ] || TINKERPOP_BUILD_OPTIONS="${TINKERPOP_BUILD_OPTIONS} -DskipIntegrationTests=false"
-[ -z "${INCLUDE_NEO4J}" ] || TINKERPOP_BUILD_OPTIONS="${TINKERPOP_BUILD_OPTIONS} -DincludeNeo4j"
 [ -z "${BUILD_JAVA_DOCS}" ] && TINKERPOP_BUILD_OPTIONS="${TINKERPOP_BUILD_OPTIONS} -Dmaven.javadoc.skip=true"
 
 # If any of these GLVs are selected then create a minimal build to reduce build/test times
 # as the user is likely not interested in the other modules.
 if [[ -n ${INCLUDE_GO} || -n ${INCLUDE_PYTHON} || -n ${INCLUDE_DOTNET} || -n ${INCLUDE_JAVASCRIPT} || -n ${INCLUDE_CONSOLE} ]]; then
-  # gremlin-server, gremlin-test and neo4j-gremlin are minimal dependencies needed to start a server for GLV testing.
-  TINKERPOP_BUILD_OPTIONS="${TINKERPOP_BUILD_OPTIONS} -am -pl gremlin-server,gremlin-test,neo4j-gremlin"
+  # gremlin-server and gremlin-test are minimal dependencies needed to start a server for GLV testing.
+  TINKERPOP_BUILD_OPTIONS="${TINKERPOP_BUILD_OPTIONS} -am -pl gremlin-server,gremlin-test"
 
   [ -n "${INCLUDE_GO}" ] && TINKERPOP_BUILD_OPTIONS="${TINKERPOP_BUILD_OPTIONS},gremlin-go"
   [ -n "${INCLUDE_PYTHON}" ] && TINKERPOP_BUILD_OPTIONS="${TINKERPOP_BUILD_OPTIONS},gremlin-python"
@@ -118,7 +115,6 @@ if [ ! -z "${BUILD_USER_DOCS}" ]; then
   # build docs
   mkdir -p ~/.groovy
   cp docker/resources/groovy/grapeConfig.xml ~/.groovy/
-  rm -rf /tmp/neo4j
   grep -l 'http://tinkerpop.apache.org/docs/x.y.z' $(find docs/src -name "*.asciidoc" | grep -v '^.docs/src/upgrade/') | xargs sed -i 's@http://tinkerpop.apache.org/docs/x.y.z@/docs/x.y.z@g'
   bin/process-docs.sh || exit 1
 

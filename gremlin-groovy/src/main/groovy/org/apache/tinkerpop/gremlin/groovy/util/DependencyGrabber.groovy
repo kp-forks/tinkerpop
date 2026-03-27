@@ -142,7 +142,7 @@ class DependencyGrabber {
             throw e
         }
 
-        // the ordering of jars seems to matter in some cases (e.g. neo4j).  the plugin system allows the plugin
+        // the ordering of jars seems to matter in some cases.  the plugin system allows the plugin
         // to place a Gremlin-Plugin-Paths entry in the jar manifest file to define where specific jar files should
         // go in the path which provides enough flexibility to control when jars should load.  unfortunately,
         // this "ordering" issue doesn't seem to be documented as an issue anywhere and it is difficult to say

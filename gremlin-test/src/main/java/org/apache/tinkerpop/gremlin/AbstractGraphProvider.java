@@ -47,8 +47,7 @@ public abstract class AbstractGraphProvider implements GraphProvider {
     /**
      * Provides a basic configuration for a particular {@link Graph} instance and uses the {@code graphName} to ensure
      * that the instance is unique.  It is up to the Gremlin implementation to determine how best to use the
-     * {@code graphName} to ensure uniqueness.  For example, Neo4j, might use the {@code graphName} might be used to
-     * create a different sub-directory where the graph is stored.
+     * {@code graphName} to ensure uniqueness.
      * <p/>
      * The @{code test} and @{code testMethodName} can be used to alter graph configurations for specific tests.
      * For example, a graph that has support for different transaction isolation levels might only support a feature

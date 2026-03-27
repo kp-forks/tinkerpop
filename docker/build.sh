@@ -40,12 +40,11 @@ function usage {
           "\nBuild the current local TinkerPop project in a Docker container." \
           "\nBy default all modules are run. If you prefer to run a specific module then please" \
           "\nenter it as an option. Selecting specific modules changes the build to include only" \
-          "\nthose selected modules as well as gremlin-server, gremlin-test and neo4j-gremlin (and" \
+          "\nthose selected modules as well as gremlin-server and gremlin-test (and" \
           "\ntheir dependencies)." \
           "\n\nOptions are:\n" \
           "\n\t-t,  --tests              run standard test suite" \
           "\n\t-i,  --integration-tests  run integration tests" \
-          "\n\t-n,  --neo4j              include Neo4j" \
           "\n\t-go, --golang             change to minimal build and add gremlin-go to build" \
           "\n\t-py, --python             change to minimal build and add gremlin-python to build" \
           "\n\t-dn, --dotnet             change to minimal build and add gremlin-dotnet to build" \
@@ -69,7 +68,6 @@ while [ ! -z "$1" ]; do
   case "$1" in
     -t  | --tests ) ARGS="${ARGS} -t"; RUN_TESTS=true; shift ;;
     -i  | --integration-tests ) ARGS="${ARGS} -i"; RUN_INTEGRATION_TESTS=true; shift ;;
-    -n  | --neo4j ) ARGS="${ARGS} -n"; shift ;;
     -go | --golang ) ARGS="${ARGS} -go"; INCLUDE_GO=true; shift ;;
     -py | --python ) ARGS="${ARGS} -py"; INCLUDE_PYTHON=true; shift ;;
     -dn | --dotnet ) ARGS="${ARGS} -dn"; INCLUDE_DOTNET=true; shift ;;
@@ -123,7 +121,6 @@ docker run -p 80:80 ${TINKERPOP_DOCKER_OPTS} ${REMOVE_CONTAINER} \
            --mount type=bind,src=$(pwd)/gremlin-server/,dst=/usr/src/tinkerpop/gremlin-server/ \
            --mount type=bind,src=$(pwd)/gremlin-test/,dst=/usr/src/tinkerpop/gremlin-test/ \
            --mount type=bind,src=$(pwd)/gremlin-console/,dst=/usr/src/tinkerpop/gremlin-console/ \
-           --mount type=bind,src=$(pwd)/neo4j-gremlin/,dst=/usr/src/tinkerpop/neo4j-gremlin/ \
            tinkerpop:${BUILD_TAG}
 check_status
 

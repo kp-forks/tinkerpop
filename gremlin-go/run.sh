@@ -23,14 +23,14 @@ function usage {
           "\n\nRun the Gremlin-Go test suite in Docker." \
           "\n\nOptions:" \
           "\n\t<server-version> \t Optional value, if unspecified the test suite will run with the current version
-           \t\t\t of Gremlin server and Gremlin Neo4j, as specified in the TinkerPop pom.xml file." \
+           \t\t\t of Gremlin server as specified in the TinkerPop pom.xml file." \
           "\n\t-h, --help \t\t Show this message." \
           "\n\nExamples:" \
           "\n\tRunning the default: ./run.sh" \
           "\n\tThe default requires a SNAPSHOT server image to be built using:
           mvn clean install -pl :gremlin-server -DskipTests -DskipIntegrationTests=true -am && mvn install -Pdocker-images -pl :gremlin-server" \
           "\n\tRunning a prebuilt local SNAPSHOT build: ./run.sh 3.x.x-SNAPSHOT" \
-          "\n\tRunning a released version: ./run.sh 3.5.3" \
+          "\n\tRunning a released version: ./run.sh 3.8.0" \
           "\n"
 }
 

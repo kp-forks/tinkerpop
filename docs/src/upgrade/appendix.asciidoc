@@ -65,6 +65,8 @@ transformer.transform(source, result);
 
 === TinkerPop2 Data Migration
 
+NOTE: As of TinkerPop 4.0.0, this section is here for legacy purposes only.
+
 image:data-migration.png[width=300,float=right] For those using TinkerPop 2.x, migrating to TinkerPop 3.x will mean a
 number of programming changes, but may also require a migration of the data depending on the graph implementation.  For
 example, trying to open `TinkerGraph` data from TinkerPop 2.x with TinkerPop 3.x code will not work, however opening a

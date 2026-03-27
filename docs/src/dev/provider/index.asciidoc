@@ -148,8 +148,7 @@ to execute queries. Typically, the structure API methods are not used directly b
 
 The classes that a graph system provider should focus on implementing are itemized below. It is a good idea to study
 the link:https://tinkerpop.apache.org/docs/x.y.z/reference/#tinkergraph-gremlin[TinkerGraph] (in-memory OLTP and OLAP
-in `tinkergraph-gremlin`), link:https://tinkerpop.apache.org/docs/x.y.z/reference/#neo4j-gremlin[Neo4jGraph]
-(OLTP w/ transactions in `neo4j-gremlin`) and/or
+in `tinkergraph-gremlin`) and/or
 link:https://tinkerpop.apache.org/docs/x.y.z/reference/#hadoop-gremlin[HadoopGraph] (OLAP in `hadoop-gremlin`)
 implementations for ideas and patterns.
 
@@ -188,7 +187,7 @@ exceptions and their messages are consistent amongst all TinkerPop implementatio
 The following bullets provide some tips to consider when implementing the structure interfaces:
 
 * `Graph`
-** Be sure the `Graph` implementation is named as `XXXGraph` (e.g. TinkerGraph, Neo4jGraph, HadoopGraph, etc.).
+** Be sure the `Graph` implementation is named as `XXXGraph` (e.g. TinkerGraph, HadoopGraph, etc.).
 ** This implementation needs to be `GraphFactory` compatible which means that the implementation should have a static
 `Graph open(Configuration)` method where the `Configuration` is an Apache Commons class of that name. Alternatively, the
 `Graph` implementation can have the `GraphFactoryClass` annotation which specifies a class with that static
@@ -666,7 +665,7 @@ hand, if you do implement the `Graph` API or `GraphComputer` API, it likely make
 and the Gherkin suite.
 
 To implement the JVM tests, provide test case implementations as shown below, where `XXX` below denotes the name of the
-graph implementation (e.g. TinkerGraph, Neo4jGraph, HadoopGraph, etc.).
+graph implementation (e.g. TinkerGraph, HadoopGraph, etc.).
 
 [source,java]
 ----
@@ -852,8 +851,8 @@ The following is just an example as taken from TinkerGraph:
         tags = "not @GraphComputerOnly and not @AllowNullPropertyValues",
         glue = { "org.apache.tinkerpop.gremlin.features" },
         features = { "classpath:/org/apache/tinkerpop/gremlin/test/features" },
-        plugin = {"progress", "junit:target/cucumber.xml",
-        objectFactory = GuiceFactory.class})
+        plugin = {"progress", "junit:target/cucumber.xml"},
+        objectFactory = TinkerGraphFeatureTest.TinkerGraphGuiceFactory.class)
 ----
 
 The `@CucumberOptions` that are used are mostly implementation-specific, so it will be up to the provider to make some
@@ -875,40 +874,31 @@ Guice. To follow this approach, include the following module:
 <dependency>
     <groupId>com.google.inject</groupId>
     <artifactId>guice</artifactId>
-    <version>4.2.3</version>
+    <version>6.0.0</version>
     <scope>test</scope>
 </dependency>
 ----
 
-Following the Neo4jGraph implementation, there are two classes to construct:
+Following the TinkerGraph implementation, there are two classes to construct:
 
 [source,java]
 ----
-public class ServiceModule extends AbstractModule {
+public static final class ServiceModule extends AbstractModule {
     @Override
     protected void configure() {
-        bind(World.class).to(Neo4jGraphWorld.class);
+        bind(World.class).to(TinkerWorld.TinkerGraphWorld.class);
     }
 }
 
-public class WorldInjectorSource implements InjectorSource {
-    @Override
-    public Injector getInjector() {
-        return Guice.createInjector(Stage.PRODUCTION, CucumberModules.createScenarioModule(), new ServiceModule());
+public static class TinkerGraphGuiceFactory extends AbstractGuiceFactory {
+    public TinkerGraphGuiceFactory() {
+        super(Guice.createInjector(Stage.PRODUCTION, CucumberModules.createScenarioModule(), new ServiceModule()));
     }
 }
 ----
 
-The key here is that the `Neo4jGraphWorld` implementation gets bound to `World` in the `ServiceModule` and there is
-a `WorldInjectorSource` that specifies the `ServiceModule` to Cucumber. As a final step, the provider's test resources
-needs a `cucumber.properties` file with an entry that specifies the `InjectorSource` so that Guice can find it. Here
-is the example taken from TinkerGraph where the `WorldInjectorSource` is inner class of `TinkerGraphFeatureTest`
-itself.
-
-[source,text]
-----
-guice.injector-source=org.apache.tinkerpop.gremlin.neo4j.Neo4jGraphFeatureTest$WorldInjectorSource
-----
+The key here is that the `TinkerWorld.TinkerGraphWorld` implementation gets bound to `World` in the `ServiceModule` and
+there is a `TinkerGraphGuiceFactory` that specifies the `ServiceModule` to Cucumber.
 
 In the event that a single `World` configuration is insufficient, it may be necessary to develop a custom
 `ObjectFactory`. An easy way to do this is to create a class that extends from the `AbstractGuiceFactory` in
@@ -917,7 +907,7 @@ means it will be important to include a `io.cucumber.core.backend.ObjectFactory`
 entry that registers the custom implementation. Please see the TinkerGraph test code for further information on this
 approach.
 
-If implementing the Gherkin tests, providers can choose to opt-in to the slimmed down version of the normal JVM process
+If implementing the Gherkin tests, providers can choose to opt-in to the slimmed-down version of the normal JVM process
 test suite to help alleviate test duplication between the two frameworks:
 
 [source,java]
@@ -925,31 +915,6 @@ test suite to help alleviate test duplication between the two frameworks:
 @Graph.OptIn(Graph.OptIn.SUITE_PROCESS_EMBEDDED_STANDARD)
 @Graph.OptIn(Graph.OptIn.SUITE_PROCESS_EMBEDDED_COMPUTER)
 ----
-
-=== Accessibility via GremlinPlugin
-
-image:gremlin-plugin.png[width=100,float=left] The applications distributed with TinkerPop do not distribute with
-any graph system implementations besides TinkerGraph. If your implementation is stored in a Maven repository (e.g.
-Maven Central Repository), then it is best to provide a <<gremlin-plugins,`GremlinPlugin`>> implementation so the respective jars can be
-downloaded according and when required by the user. Neo4j's GremlinPlugin is provided below for reference.
-
-[source,java]
-----
-include::{basedir}/neo4j-gremlin/src/main/java/org/apache/tinkerpop/gremlin/neo4j/jsr223/Neo4jGremlinPlugin.java[]
-----
-
-With the above plugin implementations, users can now download respective binaries for Gremlin Console, Gremlin Server, etc.
-
-[source,groovy]
-gremlin> g = Neo4jGraph.open('/tmp/neo4j')
-No such property: Neo4jGraph for class: groovysh_evaluate
-Display stack trace? [yN]
-gremlin> :install org.apache.tinkerpop neo4j-gremlin x.y.z
-==>loaded: [org.apache.tinkerpop, neo4j-gremlin, …]
-gremlin> :plugin use tinkerpop.neo4j
-==>tinkerpop.neo4j activated
-gremlin> g = Neo4jGraph.open('/tmp/neo4j')
-==>neo4jgraph[EmbeddedGraphDatabase [/tmp/neo4j]]
 
 === In-Depth Implementations
 

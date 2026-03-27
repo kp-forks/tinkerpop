@@ -295,8 +295,6 @@ public class EdgeTest {
                 v1.addEdge("walks", v2, "location", "river");
                 edge.remove();
             });
-            //assertEquals(8, v1.outE().count().next().intValue());  TODO: Neo4j is not happy
-            //assertEquals(8, v2.outE().count().next().intValue());
             v1.edges(Direction.BOTH).forEachRemaining(Edge::remove);
             assertEquals(0, IteratorUtils.count(v1.edges(Direction.BOTH)));
             assertEquals(0, IteratorUtils.count(v2.edges(Direction.BOTH)));

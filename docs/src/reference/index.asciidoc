@@ -41,7 +41,6 @@ include::gremlin-variants.asciidoc[]
 
 include::implementations-intro.asciidoc[]
 include::implementations-tinkergraph.asciidoc[]
-include::implementations-neo4j.asciidoc[]
 
 // the hadoop section is split into parts because of serialization issues that are encountered when trying
 // to generate graph/spark without restarting the console and currently the only way to force a restart of the

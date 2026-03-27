@@ -108,7 +108,7 @@ if [ -n "$SCRIPT_DEBUG" ]; then
     set -x
 fi
 
-# Try to detect JDK version and add specific flag for JDK 17 to allow use of neo4j-gremlin
+# Detect JDK version and add specific flags for JDK 17
 JAVA_VERSION=$($JAVA -version 2>&1 | awk -F '"' '/version/ {print $2}')
 if [[ "$JAVA_VERSION" == 17* ]]; then
     JVM_OPTS+=( "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED" )

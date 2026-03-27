@@ -60,7 +60,7 @@ import static org.apache.tinkerpop.gremlin.features.World.GRAPHCOMPUTER_TAG_FILT
 @CucumberOptions(
         tags = GRAPHCOMPUTER_TAG_FILTER + " and not @WithElementIdStrategy",
         glue = { "org.apache.tinkerpop.gremlin.features" },
-        objectFactory = GuiceFactory.class,
+        objectFactory = SparkGraphFeatureIntegrateTest.SparkGraphGuiceFactory.class,
         features = { "classpath:/org/apache/tinkerpop/gremlin/test/features" },
         plugin = {"progress", "junit:target/cucumber.xml"})
 public class SparkGraphFeatureIntegrateTest {
@@ -182,10 +182,9 @@ public class SparkGraphFeatureIntegrateTest {
         }
     }
 
-    public static final class WorldInjectorSource implements InjectorSource {
-        @Override
-        public Injector getInjector() {
-            return Guice.createInjector(Stage.PRODUCTION, CucumberModules.createScenarioModule(), new ServiceModule());
+    public static class SparkGraphGuiceFactory extends org.apache.tinkerpop.gremlin.features.AbstractGuiceFactory {
+        public SparkGraphGuiceFactory() {
+            super(Guice.createInjector(Stage.PRODUCTION, CucumberModules.createScenarioModule(), new ServiceModule()));
         }
     }
 
