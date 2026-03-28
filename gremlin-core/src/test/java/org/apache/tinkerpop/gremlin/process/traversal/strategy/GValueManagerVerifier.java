@@ -18,7 +18,7 @@
  */
 package org.apache.tinkerpop.gremlin.process.traversal.strategy;
 
-import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.tinkerpop.gremlin.process.traversal.GValueManager;
 import org.apache.tinkerpop.gremlin.process.traversal.Step;
 import org.apache.tinkerpop.gremlin.process.traversal.Traversal;

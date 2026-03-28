@@ -18,7 +18,7 @@
  */
 package org.apache.tinkerpop.gremlin.process.traversal;
 
-import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.tinkerpop.gremlin.process.traversal.step.GValue;
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.BulkSet;
 import org.apache.tinkerpop.gremlin.process.traversal.util.AndP;

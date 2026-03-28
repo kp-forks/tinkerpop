@@ -18,7 +18,7 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
-import org.apache.commons.collections.IteratorUtils;
+import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.configuration2.BaseConfiguration;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.tinkerpop.gremlin.structure.Edge;

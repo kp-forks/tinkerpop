@@ -20,7 +20,7 @@ package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
 import java.util.List;
 import java.util.function.Function;
-import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.tinkerpop.gremlin.process.computer.Computer;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
