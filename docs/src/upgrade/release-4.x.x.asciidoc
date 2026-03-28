@@ -32,6 +32,40 @@ complete list of all the modifications that are part of this release.
 
 === Upgrading for Users
 
+==== Pythonic Property Access on Elements
+
+The `Element` class in `gremlin-python` now supports `__contains__` and `keys()`, enabling more idiomatic Python
+patterns for working with element properties. You can now use the `in` operator to check for property existence and
+`keys()` to retrieve the set of property names:
+
+[source,python]
+----
+v = g.V().has('person','name','stephen').next()
+
+# check if a property exists
+if "age" in v:
+    print(v["age"])
+
+# get all property keys
+print(v.keys())  # {'name', 'age'}
+----
+
+See: link:https://issues.apache.org/jira/browse/TINKERPOP-3119[TINKERPOP-3119]
+
+==== Runtime Upgrades
+
+All JavaScript projects (`gremlin-javascript`, `gremlin-mcp`, `gremlint`) have been upgraded to node version 22.
+
+==== ResultQueue Removed
+
+The public class `ResultQueue` in `gremlin-driver` has been removed. It's functionality has been merged into
+`ResultSet`. Users of this class should reference the newly added methods of `ResultSet` instead.
+
+==== neo4j-gremlin Removed
+
+The module `neo4j-gremlin` was deprecated in 3.7.0 and has now been removed. It was based on version 3.4 of Neo4j which
+reached EOL in March 2020. Users that depend on this module will need to stay on the 3.x line.
+
 ==== Gremlin MCP Server
 
 ===== Gremlin Query Translation

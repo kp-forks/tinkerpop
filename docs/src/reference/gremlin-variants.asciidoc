@@ -2314,6 +2314,14 @@ anchor:gremlin-net-limitations[]
 * The `subgraph()`-step is not supported by any variant that is not running on the Java Virtual Machine as there is
 no `Graph` instance to deserialize a result into on the client-side. A workaround is to replace the step with
 `aggregate(local)` and then convert those results to something the client can use locally.
+* `DateTimeOffset` cannot represent the extreme values of Gremlin's `OffsetDateTime` maximum and minimum,
+so offset date-time values at those boundaries will fail to deserialize.
+* Gremlin's `Duration` type has a much larger range than C#'s `TimeSpan`, so extreme duration values (such as
+`Duration.FOREVER`) that exceed `TimeSpan.MaxValue` or `TimeSpan.MinValue` will fail to deserialize.
+* Gremlin's `BigDecimal` supports up to 33 digits of precision while C#'s `decimal` type is limited to 28-29
+significant digits, so high-precision values may lose accuracy or fail to deserialize.
+* C# `Dictionary` does not allow `null` keys, so `Map` results with `null` keys (e.g. from `group()` or
+`groupCount()` on a missing property) will fail during deserialization.
 
 anchor:gremlin-dotnet-template[]
 anchor:dotnet-application-examples[]
