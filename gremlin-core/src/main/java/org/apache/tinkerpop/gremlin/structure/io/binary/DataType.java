@@ -48,7 +48,7 @@ public enum DataType {
     BIGDECIMAL(0X22),
     BIGINTEGER(0X23),
     BYTE(0X24),
-    BYTEBUFFER(0X25),
+    BINARY(0X25),
     SHORT(0X26),
     BOOLEAN(0x27),
     BULKSET(0X2A),  // todo:

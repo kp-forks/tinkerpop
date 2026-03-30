@@ -35,7 +35,7 @@ import org.apache.tinkerpop.gremlin.structure.io.IoRegistry;
 import org.apache.tinkerpop.gremlin.structure.io.binary.types.BigDecimalSerializer;
 import org.apache.tinkerpop.gremlin.structure.io.binary.types.BigIntegerSerializer;
 import org.apache.tinkerpop.gremlin.structure.io.binary.types.BulkSetSerializer;
-import org.apache.tinkerpop.gremlin.structure.io.binary.types.ByteBufferSerializer;
+import org.apache.tinkerpop.gremlin.structure.io.binary.types.BinarySerializer;
 import org.apache.tinkerpop.gremlin.structure.io.binary.types.CharSerializer;
 import org.apache.tinkerpop.gremlin.structure.io.binary.types.CustomTypeSerializer;
 import org.apache.tinkerpop.gremlin.structure.io.binary.types.DurationSerializer;
@@ -108,7 +108,7 @@ public class TypeSerializerRegistry {
             new RegistryEntry<>(BigDecimal.class, new BigDecimalSerializer()),
             new RegistryEntry<>(BigInteger.class, new BigIntegerSerializer()),
             new RegistryEntry<>(Byte.class, SingleTypeSerializer.ByteSerializer),
-            new RegistryEntry<>(ByteBuffer.class, new ByteBufferSerializer()),
+            new RegistryEntry<>(ByteBuffer.class, new BinarySerializer()),
             new RegistryEntry<>(Short.class, SingleTypeSerializer.ShortSerializer),
             new RegistryEntry<>(Boolean.class, SingleTypeSerializer.BooleanSerializer),
             new RegistryEntry<>(Tree.class, new TreeSerializer()),

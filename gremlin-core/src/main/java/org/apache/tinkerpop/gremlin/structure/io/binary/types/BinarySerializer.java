@@ -29,10 +29,10 @@ import java.nio.ByteBuffer;
 /**
  * @author Stephen Mallette (http://stephen.genoprime.com)
  */
-public class ByteBufferSerializer extends SimpleTypeSerializer<ByteBuffer> {
+public class BinarySerializer extends SimpleTypeSerializer<ByteBuffer> {
 
-    public ByteBufferSerializer() {
-        super(DataType.BYTEBUFFER);
+    public BinarySerializer() {
+        super(DataType.BINARY);
     }
 
     @Override
