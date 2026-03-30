@@ -24,7 +24,7 @@ from gremlin_python import statics
 from gremlin_python.driver import serializer
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 from gremlin_python.statics import long
-from gremlin_python.process.traversal import TraversalStrategy, P, Order, T, DT, GValue, Cardinality
+from gremlin_python.process.traversal import TraversalStrategy, P, Order, T, DT, GValue, Cardinality, Scope
 from gremlin_python.process.graph_traversal import __
 from gremlin_python.process.anonymous_traversal import traversal
 from gremlin_python.structure.graph import Vertex, Edge, Graph
@@ -226,6 +226,16 @@ class TestDriverRemoteConnection(object):
             for e in sg.edges.values():
                 assert isinstance(e, Edge)
                 assert e.label == 'knows'
+
+    def test_set_with_unhashable_elements(self, remote_connection):
+        g = traversal().withRemote(remote_connection)
+        # g.V().valueMap().dedup(Scope.local) returns a Set of Map results which previously
+        # threw TypeError because Python sets cannot contain unhashable dict elements.
+        # The Set is now coerced to a list when it contains unhashable elements.
+        results = g.V().valueMap().dedup(Scope.local).toList()
+        assert len(results) > 0
+        for r in results:
+            assert isinstance(r, list)
 
     def test_iteration(self, remote_connection):
         statics.load_statics(globals())
