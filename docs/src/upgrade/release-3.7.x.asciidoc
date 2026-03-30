@@ -55,6 +55,10 @@ respectively. It is important that you review your code for these patterns as pa
 
 See: link:https://issues.apache.org/jira/browse/TINKERPOP-3235[TINKERPOP-3235]
 
+==== Runtime Upgrades
+
+Gremlin Javascript now supports Node 22 and 24 alongside Node 20.
+
 === Upgrading for Providers
 
 ==== Graph System Providers
