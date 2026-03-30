@@ -2337,7 +2337,7 @@ describeGraph(HadoopGraph)
 [[gremlin-mcp]]
 === Gremlin MCP
 
-Gremlin MCP integrates Apache TinkerPop with the Model Context Protocol (MCP) so that MCP‑capable assistants, (for
+Gremlin MCP integrates Apache TinkerPop with the Model Context Protocol (MCP) so that MCP‑capable assistants (for
 example, desktop chat clients that support MCP) can discover your graph, run Gremlin traversals and exchange graph data
 through a small set of well‑defined tools. It allows users to “talk to your graph” while keeping full Gremlin power
 available when they or the assistant need it.
