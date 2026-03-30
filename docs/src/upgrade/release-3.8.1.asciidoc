@@ -126,9 +126,9 @@ g.V().as("v").
 
 This more compact representation presents a form much more in line with the manually formatted one. While there is still
 room to improve, Gremlint now produces a format that is more likely to be usable without additional manual formatting
-intervention
+intervention.
 
-==== Remote Transaction Performance Improvments
+==== Remote Transaction Performance Improvements
 
 The Java driver now supports reusing existing pooled WebSocket connections for session-based requests rather than
 establishing a dedicated connection per session. This behavior is controlled by the `Cluster.Builder` option
