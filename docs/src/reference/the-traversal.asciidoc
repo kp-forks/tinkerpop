@@ -6451,8 +6451,8 @@ g.V().outE().inV().
     by('name')
 ----
 
-WARNING: It is not advisable to provide filtering traversals that do more than just filter (e.g. mutation steps,
-side-effects, etc.) - prefer use of the standard `has()` step variations for best results.
+WARNING: It is not advisable to provide filtering traversals that do more than just filter (e.g. map-type steps,
+mutation steps, side-effects, etc.) - prefer use of the standard `has()` step variations for best results.
 
 === VertexProgramDenyStrategy
 

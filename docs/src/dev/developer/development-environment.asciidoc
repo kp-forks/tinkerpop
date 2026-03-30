@@ -19,8 +19,8 @@ under the License.
 [[development-environment]]
 = Development Environment
 
-TinkerPop is fairly large body of code spread across many modules and covering multiple programming languages. Despite
-this complexity, it remains relatively straightforward a project to build. This following subsections explain how to
+TinkerPop is a fairly large body of code spread across many modules and covering multiple programming languages. Despite
+this complexity, it remains a relatively straightforward project to build. The following subsections explain how to
 configure a development environment for TinkerPop.
 
 image:conspiracy.png[]
@@ -423,10 +423,10 @@ username = <username>
 password =
 ----
 
-The approach above assumes basic authentication and a blank password will in `.pyirc` will have Maven prompt for a
+The approach above assumes basic authentication and a blank password in `.pypirc` will have Maven prompt for a
 password. That said, it is preferred that your account be secured with 2FA, in which case, basic authentication will
 no longer be allowed. Instead, an API token is required. It can be generated under your
-link:https://pypi.org/manage/account/token/[account settings] and then the username in `.pyirc` is set to `__token__`
+link:https://pypi.org/manage/account/token/[account settings] and then the username in `.pypirc` is set to `__token__`
 and the password to the token value. Please see link:https://pypi.org/help/#apitoken[PyPI documentation] for more
 details.
 
@@ -463,10 +463,10 @@ be done automatically on `mvn deploy` or it can be triggered manually with `mvn 
 == Using AI Coding Agents
 
 TinkerPop does not endorse or require any particular AI Coding Agents or tool. As a result, tool-specific project
-guidelines are not included with the code base. TinkerPop does however provide for a generic, agent-agnostic `AGENTS.MD`
+guidelines are not included with the code base. TinkerPop does, however, provide for a generic, agent-agnostic `AGENTS.md`
 file at the root of the project. Developers should make use of this file's instructions by pointing their specific
 AI-based tool to it. While tools may vary in how they are set up, the approach is to treat tool-specific files, such as
-`.junie/guidelines.md`, `.claude/CLAUDE.md` etc., as thin shims that just point to TinkerPop's `AGENTS.MD` instead of
+`.junie/guidelines.md`, `.claude/CLAUDE.md` etc., as thin shims that just point to TinkerPop's `AGENTS.md` instead of
 relying on individual rules. The content of those tool-specific files should:
 
 * Explain that AGENTS.md is the canonical source.
