@@ -42,6 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -135,12 +136,25 @@ public abstract class AbstractGraphSONMessageSerializerV1 extends AbstractMessag
             final Map<String, Object> responseData = mapper.readValue(payload, mapTypeReference);
             final Map<String, Object> status = (Map<String, Object>) responseData.get(SerTokens.TOKEN_STATUS);
             final Map<String, Object> result = (Map<String, Object>) responseData.get(SerTokens.TOKEN_RESULT);
+
+            final Map<String, Object> meta = (Map<String, Object>) result.get(SerTokens.TOKEN_META);
+            if (null == meta) {
+                if (logger.isWarnEnabled())
+                    logger.warn("Response is missing the 'meta' field in the result - defaulting to an empty map.");
+            }
+
+            final Map<String, Object> statusAttributes = (Map<String, Object>) status.get(SerTokens.TOKEN_ATTRIBUTES);
+            if (null == statusAttributes) {
+                if (logger.isWarnEnabled())
+                    logger.warn("Response is missing the 'attributes' field in the status - defaulting to an empty map.");
+            }
+
             return ResponseMessage.build(UUID.fromString(responseData.get(SerTokens.TOKEN_REQUEST).toString()))
                     .code(ResponseStatusCode.getFromValue((Integer) status.get(SerTokens.TOKEN_CODE)))
                     .statusMessage(String.valueOf(status.get(SerTokens.TOKEN_MESSAGE)))
-                    .statusAttributes((Map<String, Object>) status.get(SerTokens.TOKEN_ATTRIBUTES))
+                    .statusAttributes(null == statusAttributes ? Collections.emptyMap() : statusAttributes)
                     .result(result.get(SerTokens.TOKEN_DATA))
-                    .responseMetaData((Map<String, Object>) result.get(SerTokens.TOKEN_META))
+                    .responseMetaData(null == meta ? Collections.emptyMap() : meta)
                     .create();
         } catch (Exception ex) {
             logger.warn("Response [{}] could not be deserialized by {}.", msg, AbstractGraphSONMessageSerializerV1.class.getName());
