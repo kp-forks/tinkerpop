@@ -54,7 +54,7 @@ NOTE: TinkerPop has a bit of a JVM-centric view of types as it was developed wit
 
 Graph providers may not support all of these types depending on the architecture and implementation. Therefore
 TinkerPop must provide a way for Graph providers to override the behavior while it has its own default behavior. Also
-when some types are not supported Graph providers needs to map unsupported types into supported types internally. This
+when some types are not supported Graph providers need to map unsupported types into supported types internally. This
 mapping can be done in either information-preserving manner or non-preserving manner. Graph providers must tell which
 mapping they support through `Graph.Features` as well as which types they support.
 
@@ -1115,8 +1115,8 @@ each traversal, although providers can choose to re-use instances across travers
 Providers using the reference implementation can return `Traverser` output or raw value output - the `CallStep` will
 handle either case appropriately. In the case of a `Streaming` service, where there is exactly one input to each
 call, the reference implementation can preserve `Path` information by splitting the input `Traverser` when receiving
-raw output from the call. In the case of `Barrier` however, it is the responsiblity of the `Service` to preserve
-`Path` information by producing its own `Traversers` as output, since the `CallStep` cannot match input and ouput
+raw output from the call. In the case of `Barrier` however, it is the responsibility of the `Service` to preserve
+`Path` information by producing its own `Traversers` as output, since the `CallStep` cannot match input and output
 across a barrier. The ability to split input `Traversers` and generate output is provided by the reference
 implementation's `ServiceCallContext` object, which is supplied to the `Service` during execution.
 
@@ -1127,15 +1127,15 @@ There are three execution methods in the reference implementation service call A
 * `execute(ServiceCallContext, TraverserSet, Map)` - execute a service call mid-traversal barrier
 
 The Map is the merged collection of all static and dynamic parameters. In the case of `Barrier` execution, notice
-that there is one `Map` for many input. Since the `call()` API support dynamic parameters, this implies that all
+that there is one `Map` for many input. Since the `call()` API supports dynamic parameters, this implies that all
 input must reduce to the same set of parameters for `Barrier` execution. In the reference implementation, if more
-than one parameter set is detected, this will cause an execution and the traversal will halt. Providers that
+than one parameter set is detected, this will cause an exception and the traversal will halt. Providers that
 implement their own version of a call operation may decide on other strategies to handle this case - for example
 it may be sensible to group traversers by Map in the case where multiple parameter sets are detected.
 
 The no-arg version of the `call()` API is meant to be a directory service and should only be used to start a traversal.
-The reference implementation provides a  default version, with will produce a list of service names or a service
-description if run with `verbose=true`. Providers using the own implementation of the call operation must provide their
+The reference implementation provides a default version, which will produce a list of service names or a service
+description if run with `verbose=true`. Providers using their own implementation of the call operation must provide their
 own directory listing service with the service name `"--list"`.
 
 *Exceptions*
@@ -1287,7 +1287,7 @@ link:https://tinkerpop.apache.org/docs/x.y.z/reference/#coin-step[reference]
 
 *Description:* Concatenates the incoming String traverser with the input String arguments, and return the joined String.
 
-*Syntax:* `concat()` | `concat(String... concatStrings)` | `concat(Traversal concatTraveral, Traversal... otherConcatTraverals)`
+*Syntax:* `concat()` | `concat(String... concatStrings)` | `concat(Traversal concatTraversal, Traversal... otherConcatTraversals)`
 
 [width="100%",options="header"]
 |=========================================================
@@ -1299,9 +1299,9 @@ link:https://tinkerpop.apache.org/docs/x.y.z/reference/#coin-step[reference]
 
 * `concatStrings` - Varargs of `String`. If one or more String values are provided, they will be concatenated together
 with the incoming traverser. If no argument is provided, the String value from the incoming traverser is returned.
-* `concatTraveral` - A `Traversal` whose must value resolve to a `String`. The first result returned from the traversal will
+* `concatTraversal` - A `Traversal` whose value must resolve to a `String`. The first result returned from the traversal will
 be concatenated with the incoming traverser.
-* `otherConcatTraverals` - Varargs of `Traversal`. Each `Traversal` value must resolve to a `String`. The first result
+* `otherConcatTraversals` - Varargs of `Traversal`. Each `Traversal` value must resolve to a `String`. The first result
 returned from each traversal will be concatenated with the incoming traverser and the previous traversal arguments.
 
 Any `null` String values will be skipped when concatenated with non-`null` String values. If two `null` value are
@@ -1641,7 +1641,7 @@ link:https://tinkerpop.apache.org/docs/x.y.z/reference/#groupcount-step[referenc
 === length()
 
 *Description:* Returns the length of the incoming string or list, if `Scope.local` is specified, returns
-the length of each string elements inside incoming list traverser.
+the length of each string element inside incoming list traverser.
 
 *Syntax:* `length()` | `length(Scope scope)`
 

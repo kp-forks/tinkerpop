@@ -306,7 +306,7 @@ built. Consequently, the scripts `bin/generate-home.sh` and `bin/publish-home.sh
 installed. Check the root `pom.xml` for the `runtime.node.version` property for the minimum version required. This is
 covered in more detail in the <<site,Site>> section.
 
-A fast way to test `grelin-mcp` after doing a build is to use link:https://modelcontextprotocol.io/docs/tools/inspector[@modelcontextprotocol/inspector]
+A fast way to test `gremlin-mcp` after doing a build is to use link:https://modelcontextprotocol.io/docs/tools/inspector[@modelcontextprotocol/inspector]
 which will start up the Gremlin MCP server and present a browser-based tool to use the commands. It is most easily
 launched with `npx` as follows:
 

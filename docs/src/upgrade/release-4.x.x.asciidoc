@@ -58,7 +58,7 @@ All JavaScript projects (`gremlin-javascript`, `gremlin-mcp`, `gremlint`) have b
 
 ==== ResultQueue Removed
 
-The public class `ResultQueue` in `gremlin-driver` has been removed. It's functionality has been merged into
+The public class `ResultQueue` in `gremlin-driver` has been removed. Its functionality has been merged into
 `ResultSet`. Users of this class should reference the newly added methods of `ResultSet` instead.
 
 ==== neo4j-gremlin Removed
@@ -116,7 +116,7 @@ g.V().has('name','Alice').out('knows').out('knows').where(neq('Alice')).values('
 
 TinkerPop has generally upgraded to SLF4j 2.x which brings with it some important changes to log initialization which
 may affect user applications that are upgrading from TinkerPop 3.x. Please see the
-[SLF4j documentation](https://www.slf4j.org/faq.html#changesInVersion200) that explains the differences and how they
+link:https://www.slf4j.org/faq.html#changesInVersion200[SLF4j documentation] that explains the differences and how they
 might apply.
 
 ==== Configuration changes
@@ -299,7 +299,7 @@ additional features that are not well suited to the Gherkin style. Providers who
 Please see the link:https://github.com/apache/tinkerpop/blob/4.0.0-beta.1/CHANGELOG.asciidoc#release-4-0-0-beta-1[changelog] for a
 complete list of all the modifications that are part of this release.
 
-NOTE: 4.0.0-beta.1 is a beta/milestone release. It is for meant as a preview version to try out the new HTTP API
+NOTE: 4.0.0-beta.1 is a beta/milestone release. It is meant as a preview version to try out the new HTTP API
 features in the server and drivers (Java/Python only). As this is a beta version only, you can expect breaking changes to
 occur in future betas for 4.0.0 on the way to its General Availability release. Items that have important
 limitations and constraints pertinent to this beta will be highlighted through the documentation inside an

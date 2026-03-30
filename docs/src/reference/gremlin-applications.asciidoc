@@ -590,7 +590,7 @@ recognized by the serializer used by the driver, there will be an error. The mos
 problems include:
 
 * Connecting to a graph that requires custom serializers, such as the ones JanusGraph provides for its relation
-identifier. Always be take time to get to know the graph database that's been chosen to determine if there are customer
+identifier. Always take time to get to know the graph database that's been chosen to determine if there are custom
 serializers that need to be registered to the server or the driver.
 * Driver versions that don't match server versions can sometimes create scenarios where serialization failures will
 present themselves. TinkerPop typically does the most testing on drivers and servers of the same version and therefore
@@ -2087,7 +2087,7 @@ params.put("#jsr223.groovy.engine.keep.globals", "soft");
 client.submit("def addItUp(x,y){x+y}", params);
 ----
 
-In cases where maintaining the expense of the global function cache is unecessary this cache can be disabled with the
+In cases where maintaining the expense of the global function cache is unnecessary this cache can be disabled with the
 `globalFunctionCacheEnabled` configuration on the `GroovyCompilerGremlinPlugin`.
 
 Gremlin Server also has a "class map" cache which holds compiled scripts which helps avoid recompilation costs on

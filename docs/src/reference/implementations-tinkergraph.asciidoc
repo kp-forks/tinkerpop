@@ -277,7 +277,7 @@ public class GraphService {
 // suitable test graph replacement for our actual production graph.
 public class GraphServiceTest {
     private static final TinkerTransactionGraph graph = TinkerTransactionGraph.open();
-    private static final GraphTraversalSource g = traversal.with(graph);
+    private static final GraphTraversalSource g = traversal().with(graph);
     private static final GraphService service = new GraphService(g);
 
     @Test
@@ -297,7 +297,7 @@ public class GraphServiceTest {
 // with this approach you could also configure your production graph directly or use custom
 // build options to trigger different test configurations for a more dynamic approach
 public class GraphServiceTest {
-    private static final GraphTraversalSource g = traversal.with(
+    private static final GraphTraversalSource g = traversal().with(
             new DriverRemoteConnection('ws://localhost:8182/gremlin'));
     private static final GraphService service = new GraphService(g);
 
