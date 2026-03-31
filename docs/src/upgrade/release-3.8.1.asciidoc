@@ -132,5 +132,13 @@ intervention.
 
 ==== Graph System Providers
 
+===== New Gherkin Test Tags
+
+New Gherkin test tags have been added for scenarios that require the graph to support specific property value types:
+`@AllowDateTimePropertyValues`, `@AllowListPropertyValues`, `@AllowMapPropertyValues`, `@AllowSetPropertyValues`, and
+`@AllowUUIDPropertyValues`. Providers whose graphs do not support storing these types as property values should exclude
+the relevant tags in their `@CucumberOptions`. The full list of tags can be found
+link:https://tinkerpop.apache.org/docs/3.8.1/dev/developer/#gherkin-tags[here].
+
 ==== Graph Driver Providers
 
