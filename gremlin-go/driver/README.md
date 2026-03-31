@@ -39,7 +39,7 @@ After running the `go get` command, your `go.mod` file should contain something 
 ```
 module gremlin-go-example
 
-go 1.22
+go 1.25
 
 require github.com/apache/tinkerpop/gremlin-go/v3 v<version>
 ```
@@ -51,7 +51,7 @@ You will need to run `go mod tidy` to import the remaining dependencies of the `
 ```
 module gremlin-go-example
 
-go 1.22
+go 1.25
 
 require github.com/apache/tinkerpop/gremlin-go v0.0.0-20220131225152-54920637bf94
 

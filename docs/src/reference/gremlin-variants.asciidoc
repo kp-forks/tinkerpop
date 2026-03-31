@@ -101,6 +101,8 @@ The following table outlines recommended runtime versions by the release in whic
 |3.7.0 |≥1.20
 |3.7.2 |≥1.21
 |3.7.3 |≥1.22
+|3.7.4 |≥1.24
+|3.7.6 |≥1.25
 |===
 
 [[gremlin-go-connecting]]
