@@ -224,6 +224,7 @@ MIT Licenses
 The Apache TinkerPop project bundles the following components under the MIT License:
 
      SLF4J API Module (org.slf4j:slf4j-api:2.0.16 - http://www.slf4j.org) - for details, see licenses/slf4j
+     Reactive Streams (org.reactivestreams:reactive-streams:1.0.4 - https://www.reactive-streams.org/) - for details, see licenses/reactive-streams
      Foundation stylesheet for CodeRay (http://foundation.zurb.com) - for details, see licenses/foundation
      normalize.css 2.1.2 (http://necolas.github.io/normalize.css/) - for details, see licenses/normalize
 
