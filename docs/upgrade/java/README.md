@@ -1,4 +1,4 @@
-////
+<!--
 Licensed to the Apache Software Foundation (ASF) under one
 or more contributor license agreements.  See the NOTICE file
 distributed with this work for additional information
@@ -15,7 +15,7 @@ software distributed under the License is distributed on an
 KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
-////
+-->
 ### CMDB Graph API (Java, Micronaut 4, Gremlin Server)
 
 This is a language/framework example project implementing the DevOps CMDB + Incident Knowledge Graph API described in `../spec/spec.md`. It connects remotely to a Gremlin Server and does not use any embedded graph.

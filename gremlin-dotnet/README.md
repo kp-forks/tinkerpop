@@ -1,5 +1,4 @@
 <!--
-
  Licensed to the Apache Software Foundation (ASF) under one
  or more contributor license agreements.  See the NOTICE file
  distributed with this work for additional information
@@ -16,7 +15,6 @@
  KIND, either express or implied.  See the License for the
  specific language governing permissions and limitations
  under the License.
-
 -->
 
 # Gremlin.Net
@@ -51,4 +49,4 @@ for early testing purposes only. These releases are not suitable for production.
 [docs]: https://tinkerpop.apache.org/docs/current/reference/#gremlin-dotnet
 [console]: https://tinkerpop.apache.org/docs/current/tutorials/the-gremlin-console/
 [steps]: https://tinkerpop.apache.org/docs/current/reference/#graph-traversal-steps
-[differences]: https://tinkerpop.apache.org/docs/current/reference/#gremlin-javascript-differences
+[differences]: https://tinkerpop.apache.org/docs/current/reference/#gremlin-dotnet-differences
