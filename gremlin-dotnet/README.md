@@ -51,4 +51,4 @@ for early testing purposes only. These releases are not suitable for production.
 [docs]: https://tinkerpop.apache.org/docs/current/reference/#gremlin-dotnet
 [console]: https://tinkerpop.apache.org/docs/current/tutorials/the-gremlin-console/
 [steps]: https://tinkerpop.apache.org/docs/current/reference/#graph-traversal-steps
-[differences]: https://tinkerpop.apache.org/docs/current/reference/#gremlin-javascript-differences
+[differences]: https://tinkerpop.apache.org/docs/current/reference/#gremlin-dotnet-differences
