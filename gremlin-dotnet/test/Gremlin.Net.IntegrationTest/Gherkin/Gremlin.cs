@@ -170,6 +170,7 @@ namespace Gremlin.Net.IntegrationTest.Gherkin
                {"g_injectX7X_anyXeqX7XX", new List<Func<GraphTraversalSource, IDictionary<string, object>, ITraversal>> {(g,p) =>g.Inject(7).Any(P.Eq(7))}}, 
                {"g_injectXnull_nullX_anyXeqXnullXX", new List<Func<GraphTraversalSource, IDictionary<string, object>, ITraversal>> {(g,p) =>g.Inject(p["xx1"]).Any(P.Eq(null))}}, 
                {"g_injectX3_threeX_anyXeqX3XX", new List<Func<GraphTraversalSource, IDictionary<string, object>, ITraversal>> {(g,p) =>g.Inject(p["xx1"]).Any(P.Eq(3))}}, 
+               {"g_V_coinX1_0X", new List<Func<GraphTraversalSource, IDictionary<string, object>, ITraversal>> {(g,p) =>g.V().Coin(1.0)}}, 
                {"g_V_coinX1X", new List<Func<GraphTraversalSource, IDictionary<string, object>, ITraversal>> {(g,p) =>g.V().Coin(1.0)}}, 
                {"g_V_coinX0X", new List<Func<GraphTraversalSource, IDictionary<string, object>, ITraversal>> {(g,p) =>g.V().Coin(0.0)}}, 
                {"g_withStrategiesXSeedStrategyX_V_order_byXnameX_coinX50X", new List<Func<GraphTraversalSource, IDictionary<string, object>, ITraversal>> {(g,p) =>g.WithStrategies(new SeedStrategy(seed: 999999)).V().Order().By("name").Coin(0.5)}}, 

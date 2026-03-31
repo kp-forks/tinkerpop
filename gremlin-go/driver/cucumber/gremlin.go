@@ -141,6 +141,7 @@ var translationMap = map[string][]func(g *gremlingo.GraphTraversalSource, p map[
     "g_injectX7X_anyXeqX7XX": {func(g *gremlingo.GraphTraversalSource, p map[string]interface{}) *gremlingo.GraphTraversal {return g.Inject(7).Any(gremlingo.P.Eq(7))}}, 
     "g_injectXnull_nullX_anyXeqXnullXX": {func(g *gremlingo.GraphTraversalSource, p map[string]interface{}) *gremlingo.GraphTraversal {return g.Inject(p["xx1"]).Any(gremlingo.P.Eq(nil))}}, 
     "g_injectX3_threeX_anyXeqX3XX": {func(g *gremlingo.GraphTraversalSource, p map[string]interface{}) *gremlingo.GraphTraversal {return g.Inject(p["xx1"]).Any(gremlingo.P.Eq(3))}}, 
+    "g_V_coinX1_0X": {func(g *gremlingo.GraphTraversalSource, p map[string]interface{}) *gremlingo.GraphTraversal {return g.V().Coin(1.0)}}, 
     "g_V_coinX1X": {func(g *gremlingo.GraphTraversalSource, p map[string]interface{}) *gremlingo.GraphTraversal {return g.V().Coin(1.0)}}, 
     "g_V_coinX0X": {func(g *gremlingo.GraphTraversalSource, p map[string]interface{}) *gremlingo.GraphTraversal {return g.V().Coin(0.0)}}, 
     "g_withStrategiesXSeedStrategyX_V_order_byXnameX_coinX50X": {func(g *gremlingo.GraphTraversalSource, p map[string]interface{}) *gremlingo.GraphTraversal {return g.WithStrategies(gremlingo.SeedStrategy(gremlingo.SeedStrategyConfig{Seed: 999999})).V().Order().By("name").Coin(0.5)}}, 
