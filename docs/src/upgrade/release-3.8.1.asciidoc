@@ -128,131 +128,17 @@ This more compact representation presents a form much more in line with the manu
 room to improve, Gremlint now produces a format that is more likely to be usable without additional manual formatting
 intervention.
 
-==== Remote Transaction Performance Improvements
-
-The Java driver now supports reusing existing pooled WebSocket connections for session-based requests rather than
-establishing a dedicated connection per session. This behavior is controlled by the `Cluster.Builder` option
-`reuseConnectionsForSessions`, which defaults to `false`.
-
-When enabled, a `Client.SessionedChildClient` will attempt to borrow a connection from the connection pool of a standard
-`Client` rather than opening its own WebSocket connection. This avoids the overhead of the TCP handshake and WebSocket
-upgrade for each session, which can be significant when issuing many short-lived transactions.
-
-[source,java]
-----
-// Enable connection reuse for sessions
-Cluster cluster = Cluster.build(host)
-        .reuseConnectionsForSessions(true)
-        .create();
-----
-
-This feature was designed specifically for use with remote transactions, where sessions are short-lived and terminate
-after a `commit()` or `rollback()`. It should not be used for classic long-running session use cases where a session
-is used for purposes other than transactions such as remote console.
-
-===== Server Configuration
-
-When using `reuseConnectionsForSessions`, the server must be configured with `closeSessionPostGraphOp` set to `true`.
-This setting instructs the server to close the session immediately after a graph-level operation such as `commit()` or
-`rollback()` completes. Without this setting, sessions will not be closed until the session timeout expires, leading to
-a buildup of idle sessions on the server side.
-
-[source,yaml]
-----
-# gremlin-server.yaml
-closeSessionPostGraphOp: true
-----
-
-IMPORTANT: Failing to enable `closeSessionPostGraphOp` on the server when using `reuseConnectionsForSessions` on the
-client will result in sessions that are not properly cleaned up. These leaked sessions will accumulate until the
-configured `sessionLifetimeTimeout` is reached, consuming server resources unnecessarily.
-
-===== Performance
-
-Performance was measured with an ad-hoc benchmark application. The application executes a configurable number of
-complete transaction lifecycles (begin, mutate, commit) and reports throughput and latency percentiles. Each transaction
-opens a session, submits one or more `addV()` operations, commits, and closes the session.
-
-The benchmark varies the following parameters:
-
-* *Concurrent clients* (`threads`): The number of threads issuing transactions simultaneously. A value of 1 means
-  transactions are executed sequentially by a single client. Higher values simulate multiple application threads or
-  service instances issuing transactions concurrently against the same server.
-* *Connection pool size* (`pool`): The number of WebSocket connections maintained in the pool when
-  `reuseConnectionsForSessions` is enabled. When reuse is disabled, each session creates its own dedicated connection
-  and this parameter does not apply (shown as `n/a`).
-* *Transaction weight* (`weight`): "light" transactions perform a single `addV()` plus commit. "heavy" transactions
-  perform ten `addV()` operations plus commit, simulating a more substantial unit of work per transaction.
-
-Tests were conducted both locally (client and server on the same machine) and remotely (client on the US west coast,
-server on the US east coast) to isolate the effect of network latency on connection setup overhead. Each scenario
-executed 1000 transactions after a warmup phase of 50 transactions.
-
-*Local Results (same machine)*
-
-[cols="3,1,1,1", options="header"]
-|=========================================================
-|Configuration |No-Reuse (tx/s) |Best-Reuse (tx/s) |Speedup
-|1 client, light |23.1 |26.7 |1.16x
-|8 clients, light |25.2 |28.5 |1.13x
-|16 clients, light |25.4 |27.9 |1.10x
-|1 client, heavy |26.0 |26.9 |1.03x
-|8 clients, heavy |26.4 |27.9 |1.06x
-|16 clients, heavy |25.8 |26.5 |1.03x
-|=========================================================
-
-*Remote Results (west coast to east coast)*
-
-[cols="3,1,1,1", options="header"]
-|=========================================================
-|Configuration |No-Reuse (tx/s) |Best-Reuse (tx/s) |Speedup
-|1 client, light |3.6 |7.6 |2.10x
-|8 clients, light |15.6 |23.0 |1.48x
-|16 clients, light |15.4 |25.3 |1.64x
-|1 client, heavy |1.4 |1.8 |1.26x
-|8 clients, heavy |9.2 |10.8 |1.17x
-|16 clients, heavy |14.5 |15.9 |1.10x
-|=========================================================
-
-The "Best-Reuse" column reflects the highest throughput observed across all tested pool sizes (2, 4, and 8 connections)
-for each scenario.
-
-The benefit of connection reuse is most pronounced in remote scenarios with light transactions. When the network
-round-trip cost is high and the transaction payload is small, the WebSocket connection setup overhead represents a
-larger proportion of the total transaction time. In the single-client remote light workload, connection reuse yielded a
-2.10x throughput improvement, as the connection handshake cost dominated the per-transaction time. With 16 concurrent
-clients in the same remote light scenario, throughput improved from 15.4 tx/s to 25.3 tx/s (1.64x), as the connection
-pool amortized the setup cost across many parallel sessions.
-
-As transaction weight increases, the relative benefit diminishes because the graph operations themselves become the
-bottleneck rather than connection setup. In the local heavy workload scenarios, the improvement was only 3-6%, as the
-connection overhead was already negligible relative to the cost of the graph mutations. Even in the remote heavy
-scenarios, the improvement ranged from 10-26%, as the ten `addV()` operations per transaction shifted the time
-distribution toward server-side processing.
-
-In summary, `reuseConnectionsForSessions` provides the greatest benefit when:
-
-* Network latency between client and server is significant (remote deployments)
-* Transactions are lightweight (few operations per transaction)
-* Many short-lived transactions are issued in sequence or concurrently
-
-See: link:https://issues.apache.org/jira/browse/TINKERPOP-3213[TINKERPOP-3213]
-
 === Upgrading for Providers
 
 ==== Graph System Providers
 
-===== Closing Sessions On Graph Operations
+===== New Gherkin Test Tags
 
-An option has been added to the Java GLV (`reuseConnectionsForSessions`) that allows for borrowing open WebSocket
-connections for sessions. This is primarily to reduce the overhead of new connection setup per session. This can lead
-to large performance gains in remote transaction scenarios where there are many small mutation traversals.
-
-This option is disabled by default on the driver but providers may want to add an option that will allow sessions to end
-on the successful completion of a graph operation (commit/rollback). This will prevent a buildup of sessions if a user
-has enabled this option as the driver will *not* close the underlying WebSocket connection as a signal to end the
-session. Gremlin Server has added an option like this called `closeSessionPostGraphOp`. Remote graph providers are
-encouraged to add the same functionality.
+New Gherkin test tags have been added for scenarios that require the graph to support specific property value types:
+`@AllowDateTimePropertyValues`, `@AllowListPropertyValues`, `@AllowMapPropertyValues`, `@AllowSetPropertyValues`, and
+`@AllowUUIDPropertyValues`. Providers whose graphs do not support storing these types as property values should exclude
+the relevant tags in their `@CucumberOptions`. The full list of tags can be found
+link:https://tinkerpop.apache.org/docs/3.8.1/dev/developer/#gherkin-tags[here].
 
 ==== Graph Driver Providers
 

@@ -2878,15 +2878,13 @@ therefore cardinality functions that take a value like `list()`, `set()`, and `s
 [[gremlin-python-limitations]]
 === Limitations
 
-* Traversals that return a `Set` *might* be coerced to a `List` in Python. In the case of Python, number equality
-is different from JVM languages which produces different `Set` results when those types are in use. When this case
-is detected during deserialization, the `Set` is coerced to a `List` so that traversals return consistent
-results within a collection across different languages. If a `Set` is needed then convert `List` results
-to `Set` manually.
-* Traversals that return a `Set` containing non-hashable items, such as `Dictionary`, `Set` and `List`, will be coerced
-into a `List` during deserialization. Python requires set elements to be hashable, for which Gremlin does not. If a
-`Set` is needed, convert elements to hashable equivalents manually (e.g. `dict` to `HashableDict`, `list` to `tuple`,
-`set` to `frozenset`).
+* Traversals that return a `Set` may be coerced to a `List` in Python in two cases. First, when the `Set` contains
+mixed numeric types (e.g. `int` and `float`), because Python number equality differs from the JVM — a Java `Set` of
+`[1, 1.0d]` has two elements, but Python considers `1 == 1.0` and would collapse them to one, so the `Set` is coerced to
+a `List` to preserve all elements consistently across languages. Second, when the `Set` contains non-hashable items such
+as `Dictionary`, `Set`, or `List`, because Python requires set elements to be hashable while Gremlin does not, the `Set`
+is also coerced to a `List`. For this case, if a `Set` is needed, convert elements to hashable equivalents manually
+(e.g. `dict` to `HashableDict`, `list` to `tuple`, `set` to `frozenset`).
 * Gremlin is capable of returning `Dictionary` results that use non-hashable keys (e.g. Dictionary as a key) and Python
 does not support that at a language level. Using GraphSON 3.0 or GraphBinary (after 3.5.0) makes it possible to return
 such results. However, it may not be possible to serialize these maps so they can't be re-inserted (or round tripped).
