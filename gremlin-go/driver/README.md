@@ -22,7 +22,7 @@
 
 ## Prerequisites
 
-* `gremlin-go` requires Golang 1.22 or later, please see [Go Download][go] for more details on installing Golang.
+* `gremlin-go` requires Golang 1.25 or later, please see [Go Download][go] for more details on installing Golang.
 * A basic understanding of [Go Modules][gomods]
 * A project set up which uses Go Modules
 
@@ -53,13 +53,12 @@ module gremlin-go-example
 
 go 1.25
 
-require github.com/apache/tinkerpop/gremlin-go v0.0.0-20220131225152-54920637bf94
+require github.com/apache/tinkerpop/gremlin-go/v3 v<version>
 
 require (
-	github.com/google/uuid v1.3.0 // indirect
-	github.com/gorilla/websocket v1.4.2 // indirect
-	github.com/nicksnyder/go-i18n/v2 v2.1.2 // indirect
-	golang.org/x/text v0.3.7 // indirect
+	github.com/google/uuid v1.6.0 // indirect
+	github.com/nicksnyder/go-i18n/v2 v2.6.0 // indirect
+	golang.org/x/text v0.32.0 // indirect
 )
 ```
 As well as a populated `go.sum` file.
@@ -72,14 +71,11 @@ For instructions on simple usage, including connecting, connection settings, ali
 ## Troubleshooting
 
 ### Can't establish connection and get any result
-* Verify you are using valid server protocol and path. Note that for secure connection `wss` should be used.
+* Verify you are using valid server protocol and path. Note that for secure connection `https` should be used.
 * Verify firewall settings.
 
 ### Local server doesn't have valid certificate
 * Set connection option &tls.Config{InsecureSkipVerify: true}
-
-### Client hangs on requests with large amount of data
-* Increase read buffer size by settings connection option `readBufferSize`.
 
 # Gremlin-Go Development
 
