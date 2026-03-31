@@ -150,6 +150,20 @@ public class GraphSONMapperEmbeddedTypeTest extends AbstractGraphSONTest {
     }
 
     @Test
+    public void shouldHandleFloatNumberConstants() throws Exception {
+        // Float serializer/deserializer only exists in V4
+        assumeThat(version, startsWith("v4"));
+
+        final List<Object> o = new ArrayList<>();
+        o.add(123.321f);
+        o.add(Float.NaN);
+        o.add(Float.NEGATIVE_INFINITY);
+        o.add(Float.POSITIVE_INFINITY);
+
+        assertEquals(o, serializeDeserialize(mapper, o, List.class));
+    }
+
+    @Test
     public void shouldHandleMap() throws Exception {
         assumeThat(version, either(startsWith("v3")).or(startsWith("v4")));
 

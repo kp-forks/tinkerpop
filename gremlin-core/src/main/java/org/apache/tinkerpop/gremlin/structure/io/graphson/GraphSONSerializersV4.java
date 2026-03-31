@@ -341,6 +341,18 @@ class GraphSONSerializersV4 {
         }
     }
 
+    final static class FloatGraphSONSerializer extends StdScalarSerializer<Float> {
+        public FloatGraphSONSerializer() {
+            super(Float.class);
+        }
+
+        @Override
+        public void serialize(final Float floatValue, final JsonGenerator jsonGenerator,
+                              final SerializerProvider serializerProvider) throws IOException {
+            jsonGenerator.writeNumber(floatValue);
+        }
+    }
+
     /**
      * Maps in the JVM can have {@link Object} as a key, but in JSON they must be a {@link String}.
      */
@@ -619,6 +631,35 @@ class GraphSONSerializersV4 {
                     throw new IllegalStateException("Double value unexpected: " + numberText);
             }
 
+        }
+
+        @Override
+        public boolean isCachable() {
+            return true;
+        }
+    }
+
+    static class FloatJacksonDeserializer extends StdDeserializer<Float> {
+
+        protected FloatJacksonDeserializer() {
+            super(Float.class);
+        }
+
+        @Override
+        public Float deserialize(final JsonParser jsonParser, final DeserializationContext deserializationContext) throws IOException, JsonProcessingException {
+            if (jsonParser.getCurrentToken().isNumeric())
+                return jsonParser.getFloatValue();
+            else {
+                final String numberText = jsonParser.getValueAsString();
+                if ("NaN".equalsIgnoreCase(numberText))
+                    return Float.NaN;
+                else if ("-Infinity".equals(numberText) || "-INF".equalsIgnoreCase(numberText))
+                    return Float.NEGATIVE_INFINITY;
+                else if ("Infinity".equals(numberText) || "INF".equals(numberText))
+                    return Float.POSITIVE_INFINITY;
+                else
+                    throw new IllegalStateException("Float value unexpected: " + numberText);
+            }
         }
 
         @Override

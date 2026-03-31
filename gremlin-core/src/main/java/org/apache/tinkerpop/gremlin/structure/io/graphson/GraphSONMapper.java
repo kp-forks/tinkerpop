@@ -106,7 +106,12 @@ public class GraphSONMapper implements Mapper<ObjectMapper> {
                     .typeProperty(GraphSONTokens.VALUETYPE);
 
             // Registers native Java types that are supported by Jackson
-            registerJavaBaseTypes(graphSONTypeIdResolver);
+            if (version == GraphSONVersion.V4_0) {
+                graphSONTypeIdResolver.addCustomType(
+                        String.format("%s:%s", GraphSONTokens.GREMLIN_TYPE_NAMESPACE, UUID.class.getSimpleName()), UUID.class);
+            } else {
+                registerJavaBaseTypes(graphSONTypeIdResolver);
+            }
 
             // Registers the GraphSON Module's types
             graphSONModule.getTypeDefinitions().forEach(

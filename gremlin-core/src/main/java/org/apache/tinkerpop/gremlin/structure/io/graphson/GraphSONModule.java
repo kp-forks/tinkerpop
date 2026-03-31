@@ -201,6 +201,7 @@ abstract class GraphSONModule extends TinkerPopJacksonModule {
             // need to explicitly add serializers for these types because Jackson doesn't do it at all.
             addSerializer(Integer.class, new GraphSONSerializersV4.IntegerGraphSONSerializer());
             addSerializer(Double.class, new GraphSONSerializersV4.DoubleGraphSONSerializer());
+            addSerializer(Float.class, new GraphSONSerializersV4.FloatGraphSONSerializer());
 
             // traversal
             addSerializer(BulkSet.class, new TraversalSerializersV4.BulkSetJacksonSerializer());
@@ -229,10 +230,12 @@ abstract class GraphSONModule extends TinkerPopJacksonModule {
             // numbers
             addDeserializer(Integer.class, new GraphSONSerializersV4.IntegerJackonsDeserializer());
             addDeserializer(Double.class, new GraphSONSerializersV4.DoubleJacksonDeserializer());
+            addDeserializer(Float.class, new GraphSONSerializersV4.FloatJacksonDeserializer());
 
             // traversal
             Stream.of(
                     Direction.values(),
+                    Merge.values(),
                     T.values()).flatMap(Stream::of).forEach(e -> addDeserializer(e.getClass(), new TraversalSerializersV4.EnumJacksonDeserializer(e.getDeclaringClass())));
         }
 

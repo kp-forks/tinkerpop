@@ -27,6 +27,9 @@ Server where arbitrary objects of varying types may be returned as results. Howe
 is only intended to be a network serialization format that is only able to serialize specific types defined by the
 format. It is only meant to be used with the TinkerPop HTTP API.
 
+NOTE: This document focuses on GraphSON 4. For the GraphSON 1, 2, and 3 specifications, please refer to the TinkerPop
+3.x IO Documentation.
+
 When considering GraphSON as a "graph" format, the relevant feature to consider is the `writeGraph` and `readGraph`
 methods on the `GraphSONWriter` and `GraphSONReader` interfaces, respectively. These methods write the entire `Graph`
 instance as output or read an entire `Graph` instance input and they do so in a way external to generalized object
@@ -109,6 +112,10 @@ Version 4.0 of GraphSON was first introduced on TinkerPop 4.0.0 and is represent
 `application/vnd.gremlin-v4.0+json;types=false`. It is very similar to GraphSON 3.0, with just several key differences:
 many underused or duplicated types have been removed, labels are now list of strings and request/response formats have
 changed quite a bit, and custom types have been replaced with Provider Defined Type (PDT).
+
+For each type below, two examples are provided. The first shows the typed representation
+(`application/vnd.gremlin-v4.0+json`) and the second shows the untyped representation
+(`application/vnd.gremlin-v4.0+json;types=false`).
 
 === Boolean
 
@@ -424,13 +431,13 @@ JSON String form of UUID.
 
 === Edge
 
-JSON Object (required keys are: id, label, inVLabel, outVLabel, inV, outV) +
+JSON Object (required keys are: id, label, inV, outV) +
 "id" is any GraphSON 4.0 type +
-"inV", "outV" is an Object that contains "id" which is any GraphSON 4.0 type and "label" which is a `g:List` of `String`
-"label" is a `g:List` of `String` +
+"inV", "outV" is an Object that contains "id" which is any GraphSON 4.0 type and "label" which is a JSON Array of `String`
+"label" is a JSON Array of `String` +
 "properties" is an optional Object containing Arrays of `g:Property`
 
-The untyped version has one additional required key "type" which is always "vertex".
+The untyped version has one additional required key "type" which is always "edge".
 
 [source,json]
 ----
@@ -2302,8 +2309,8 @@ JSON Object with two required keys: "key" and "value" +
 
 === Tree
 
-JSON Object with one or more possibly nested "key" "value" pairs
-"key" is an Element (`g:Vertex`, `g:Edge`, `g:VertexProperty`)
+JSON Array containing zero or more possibly nested JSON Objects, each containing a "key" and "value" pair +
+"key" is an Element (`g:Vertex`, `g:Edge`, `g:VertexProperty`) +
 "value" is a `g:Tree` making this a recursively defined structure
 
 [source,json]
@@ -2431,12 +2438,13 @@ JSON Object with one or more possibly nested "key" "value" pairs
 
 === Vertex
 
-JSON Object with required keys: "id", "label", "properties" +
+JSON Object with required keys: "id", "label" +
 "id" is any GraphSON 4.0 type +
-"label" is a `g:List` of `String` +
+"label" is a JSON Array of `String` +
 "properties" is an optional Object containing Arrays of `g:VertexProperty`
 
-The untyped version has one additional required key "type" which is always "vertex".
+The untyped version has one additional required key "type" which is always "vertex". Also note the difference in how
+labels are written. More details can be found in the `VertexProperty` section.
 
 [source,json]
 ----
@@ -2615,11 +2623,17 @@ The untyped version has one additional required key "type" which is always "vert
 
 === VertexProperty
 
-JSON Object with required keys: "id", "value", "label", "properties" +
+JSON Object with required keys: "id", "value", "label" +
 "id" is any type GraphSON 4.0 type +
 "value" is any type GraphSON 4.0 type +
-"label" is a `g:List` of `String` +
-"properties" is an optional Object containing Arrays of "g:Property" (metaproperties)
+"label" is a JSON Array of `String` +
+"properties" is an optional Object for metaproperties where each key is a meta-property name and each value is any
+GraphSON 4.0 type.
+
+NOTE: When a `VertexProperty` is serialized as a standalone typed value (i.e. wrapped in a `g:VertexProperty` envelope),
+the "label" field is always included. However, when vertex properties are serialized as part of a `Vertex` in untyped
+mode, the "label" is omitted because the properties are already grouped under their property key name in the containing
+object, making the label redundant.
 
 [source,json]
 ----
@@ -2704,6 +2718,23 @@ JSON String of the enum value.
 [source,text]
 ----
 "label"
+----
+
+=== Merge
+
+JSON String of the enum value.
+
+[source,json]
+----
+{
+  "@type" : "g:Merge",
+  "@value" : "onCreate"
+}
+----
+
+[source,text]
+----
+"onCreate"
 ----
 
 === Standard Request
@@ -2950,7 +2981,7 @@ The following `ResponseMessage` is a typical example of the typical successful r
 
 === Error Result
 
-The following `ResponseMessage` is a typical example of the typical successful response Gremlin Server will return when returning results from a script.
+The following `ResponseMessage` is a typical example of an error response the Gremlin Server will return from a script.
 
 [source,json]
 ----
@@ -2983,7 +3014,7 @@ The following `ResponseMessage` is a typical example of the typical successful r
 }
 ----
 
-Note that the "extended" types require the addition of the separate `GraphSONXModuleV4d0` module as follows:
+Note that the "extended" types require the addition of the separate `GraphSONXModuleV4` module as follows:
 
 [source,java]
 ----
