@@ -88,3 +88,5 @@ export const structure = {
   VertexProperty: graph.VertexProperty,
   toLong: utils.toLong,
 };
+
+export default { driver, process, structure };

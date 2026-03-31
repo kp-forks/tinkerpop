@@ -27,7 +27,7 @@ const vertexLabel = process.env.VERTEX_LABEL || 'person';
 
 async function main() {
     const dc = new DriverRemoteConnection(serverUrl);
-    const g = traversal().withRemote(dc);
+    const g = traversal().with_(dc);
 
     // Basic Gremlin: adding and retrieving data
     const v1 = await g.addV(vertexLabel).property('name','marko').next();

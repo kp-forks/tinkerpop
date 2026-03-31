@@ -36,14 +36,14 @@ async function main() {
     // Use gmodern in CI environment, default connection locally
     const options = process.env.DOCKER_ENVIRONMENT ? { traversalSource: 'gmodern' } : {};
     const dc = new DriverRemoteConnection(serverUrl, options);
-    const g = traversal().withRemote(dc);
+    const g = traversal().with_(dc);
 
     const e1 = await g.V(1).bothE().toList(); // (1)
     const e2 = await g.V(1).bothE().where(__.otherV().hasId(2)).toList(); // (2)
     const v1 = await g.V(1).next();
     const v2 = await g.V(2).next();
-    const e3 = await g.V(v1.value).bothE().where(__.otherV().is(v2.value)).toList(); // (3)
-    const e4 = await g.V(v1.value).outE().where(__.inV().is(v2.value)).toList(); // (4)
+    const e3 = await g.V(v1.value).bothE().where(__.otherV().id().is(v2.value)).toList(); // (3)
+    const e4 = await g.V(v1.value).outE().where(__.inV().id().is(v2.value)).toList(); // (4)
     const e5 = await g.V(1).outE().where(__.inV().has(t.id, p.within(2,3))).toList(); // (5)
     const e6 = await g.V(1).out().where(__.in_().hasId(6)).toList(); // (6)
 

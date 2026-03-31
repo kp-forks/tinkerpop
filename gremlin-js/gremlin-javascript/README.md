@@ -36,8 +36,7 @@ Gremlin-Javascript is designed to connect to a "server" that is hosting a Tinker
 could be [Gremlin Server][gs] or a [remote Gremlin provider][rgp] that exposes protocols by which Gremlin-Javascript 
 can connect.
 
-A typical connection to a server running on "localhost" that supports the Gremlin Server protocol using websockets 
-looks like this:
+A typical connection to a server running on "localhost" that supports the Gremlin Server protocol looks like this:
 
 ```javascript
 const gremlin = require('gremlin');
@@ -46,6 +45,21 @@ const DriverRemoteConnection = gremlin.driver.DriverRemoteConnection;
 
 const g = traversal().with_(new DriverRemoteConnection('http://localhost:8182/gremlin'));
 ```
+
+Some graph providers may require additional request customization to connect. The driver supports request interceptors
+for these cases. For example, to connect with basic authentication:
+
+```javascript
+const gremlin = require('gremlin');
+const traversal = gremlin.process.AnonymousTraversalSource.traversal;
+const DriverRemoteConnection = gremlin.driver.DriverRemoteConnection;
+
+const g = traversal().with_(new DriverRemoteConnection('http://localhost:8182/gremlin', {
+  interceptors: gremlin.driver.auth.basic('username', 'password')
+}));
+```
+
+Refer to your graph provider's documentation for specific connection requirements.
 
 Once "g" has been created using a connection, it is then possible to start writing Gremlin traversals to query the 
 remote graph:

@@ -32,7 +32,7 @@ async function main() {
 async function withRemote() {
     // Connecting to the server
     const dc = new DriverRemoteConnection(serverUrl);
-    const g = traversal().withRemote(dc);
+    const g = traversal().with_(dc);
 
     // Simple query to verify connection
     const v = await g.addV(vertexLabel).iterate();
@@ -46,10 +46,10 @@ async function withRemote() {
 async function withConfigs() {
     // Connecting and customizing configurations
     const dc = new DriverRemoteConnection(serverUrl, {
-        rejectUnauthorized: false,
         traversalSource: 'g',
+        headers: { 'X-Api-Key': 'your-api-key' },
     });
-    const g = traversal().withRemote(dc);
+    const g = traversal().with_(dc);
 
     const v = await g.addV(vertexLabel).iterate();
     const count = await g.V().hasLabel(vertexLabel).count().next();

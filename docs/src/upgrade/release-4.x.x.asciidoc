@@ -123,6 +123,13 @@ might apply.
 
 * JavaScript GLV
 ** `mimeType` setting has been removed. Use `reader` and `writer` options directly to control serialization format.
+** `authenticator` option has been removed. Use `interceptors` with `auth.basic()` or `auth.sigv4()` instead.
+** `session` option has been removed.
+** `interceptors` option has been added to `Client` and `DriverRemoteConnection` for HTTP request modification.
+** `writer` can be set to `null` to skip request serialization, allowing interceptors to handle it directly.
+** `bulkResults` has been added as a request option. `DriverRemoteConnection` defaults it to `true`.
+** `Bytecode` has been replaced with `GremlinLang`.
+** Serialization updated to GraphBinary 4.
 * .NET GLV
 ** `ConnectionPoolSettings` has been replaced with `ConnectionSettings` for HTTP connection configuration.
 ** `webSocketConfiguration` parameter has been removed.
@@ -222,6 +229,112 @@ remote, err := gremlingo.NewDriverRemoteConnection("https://localhost:8182/greml
 The WebSocket-specific settings (`TransporterType`, `ReadBufferSize`, `WriteBufferSize`, `WriteDeadline`,
 `NewConnectionThreshold`, `Session`) have been removed. New HTTP connection pool settings have been added:
 `MaximumConcurrentConnections`, `MaxIdleConnections`, `IdleConnectionTimeout`, and `KeepAliveInterval`.
+
+[[javascript-typescript-esm]]
+==== Gremlin-JavaScript TypeScript and ESM Migration
+
+The `gremlin-javascript` driver has been rewritten in TypeScript and now ships with built-in type declarations. The
+package publishes dual ESM and CommonJS builds, so both `import` and `require` work out of the box.
+
+===== Module format changes
+
+The package now sets `"type": "module"` in `package.json` and uses conditional `exports`:
+
+- ESM: `import gremlin from 'gremlin'` resolves to `build/esm/index.js`
+- CJS: `const gremlin = require('gremlin')` resolves to `build/cjs/index.cjs`
+
+Existing CommonJS applications using `require('gremlin')` will continue to work without changes. Applications using
+ESM can now use `import` directly:
+
+[source,javascript]
+----
+// CommonJS (still works)
+const gremlin = require('gremlin');
+
+// ESM — default import
+import gremlin from 'gremlin';
+
+// ESM — named imports
+import { driver, process, structure } from 'gremlin';
+----
+
+===== TypeScript support
+
+Type declarations (`.d.ts`) are included in the published package. TypeScript projects can import the driver directly
+without installing separate `@types` packages:
+
+[source,typescript]
+----
+import gremlin from 'gremlin';
+import type { ConnectionOptions } from 'gremlin/build/esm/driver/connection.js';
+
+const connection = new gremlin.driver.DriverRemoteConnection('http://localhost:8182/gremlin');
+const g = gremlin.process.traversal().with_(connection);
+----
+
+===== Breaking changes to exports
+
+Several exports have been removed or renamed compared to 3.x:
+
+- `process.Bytecode` has been removed. Use `process.GremlinLang` instead.
+- `process.Translator` has been removed. To produce a canonical gremlin script from a `Traversal`, use
+  `process.GremlinLang` instead (e.g. `traversal.getGremlinLang().getGremlin()`).
+- `driver.auth.Authenticator` and `driver.auth.PlainTextSaslAuthenticator` have been removed. Use `driver.auth.basic()`
+  and `driver.auth.sigv4()` interceptor factories instead.
+- `structure.io` (the serializer namespace) has been removed. Serialization is now internal to the driver.
+- `Graph.traversal()` has been removed. Use the `process.traversal()` function instead.
+
+For example, authentication that previously used `PlainTextSaslAuthenticator`:
+
+[source,javascript]
+----
+// 3.x
+const authenticator = new gremlin.driver.auth.PlainTextSaslAuthenticator('username', 'password');
+const client = new gremlin.driver.Client('ws://localhost:8182/gremlin', { authenticator });
+
+// 4.x
+const client = new gremlin.driver.Client('http://localhost:8182/gremlin', {
+  interceptors: gremlin.driver.auth.basic('username', 'password'),
+});
+----
+
+[[javascript-http-interceptor]]
+==== Gremlin-JavaScript HTTP and Interceptor Changes
+
+The `gremlin-javascript` driver has been updated to use HTTP instead of WebSockets. The `Connection` class now uses
+Node.js `fetch` internally and sends requests via HTTP POST to Gremlin Server.
+
+`Bytecode` has been replaced with `GremlinLang`, which builds a gremlin-lang compatible string representation of a
+traversal along with a map of named parameters. Traversals now produce gremlin-lang strings that are sent to the server
+rather than serialized bytecode.
+
+HTTP interceptors have been added to `gremlin-javascript`. Interceptors can be passed to the `Client` or
+`DriverRemoteConnection` constructor using the `interceptors` option. A `RequestInterceptor` is a function that receives
+an `HttpRequest` object containing the HTTP method, URL, headers, and body, and returns the (possibly modified) request
+or a `Promise` resolving to one. Interceptors are executed in order before the request is sent.
+
+Authentication is now handled through interceptors rather than the previous `authenticator` option. The `auth` module
+provides factory functions for built-in interceptors:
+
+[source,javascript]
+----
+import gremlin from 'gremlin';
+
+const { DriverRemoteConnection, auth } = gremlin.driver;
+
+// Basic authentication
+const connection = new DriverRemoteConnection('https://localhost:8182/gremlin', {
+  interceptors: auth.basic('username', 'password'),
+});
+
+// SigV4 authentication
+const connection = new DriverRemoteConnection('https://localhost:8182/gremlin', {
+  interceptors: auth.sigv4('service-region', 'service-name'),
+});
+----
+
+Setting the `writer` option to `null` prevents the `RequestMessage` from being serialized before interceptors run,
+allowing an interceptor to handle serialization directly where desired.
 
 ==== Transactions Re-enabled
 
