@@ -1041,6 +1041,7 @@ user-agent: NotAvailable Gremlin-Java.4.0.0 11.0.25 Windows_11.10.0 amd64
 |Content-Type |The MIME type of the serialized body |No |None
 |Gremlin-Hints |A semi-colon separated list of key/value pair metadata that could be helpful to the server in processing a particular request in some way. Must be a hints (see table below). |No |N/A
 |User-Agent |The user agent. Follow the format specified by <<user-agent-format, user agent format>>. |No |<<user-agent-format, user agent format>>
+|X-Transaction-Id |Transaction ID that must match the `transactionId` field in the request body. Enables load balancer sticky routing without requiring body parsing. Only include when a transaction is active (i.e. after a successful begin and before commit/rollback). |No |N/A
 |=========================================================
 
 ===== Request Header Value Options
@@ -1068,6 +1069,7 @@ the serializer specified by the `Content-Type` header. The following are the key
 |language |The name of the ScriptEngine to use to parse the gremlin query. Default: "gremlin-lang" |String containing ScriptEngine name |No
 |materializeProperties |Whether to include all properties for results. One of "tokens" or "all". |String |No
 |bulkResults |Whether the results should be bulked by the server (only applies to GraphBinary) |Boolean |No
+|transactionId |A server-generated UUID that identifies an active transaction. Must be included in all non-begin requests within that transaction. Omit for non-transactional requests and for the initial begin request. |String |No
 |=========================================================
 
 ==== HTTP Response
@@ -1122,6 +1124,7 @@ serialized. In that case, the `Content-Type` of the response should be `applicat
 |Content-Type |The MIME type of the serialized body which is based on the request's `Accept` header. May also be "application/json". |Yes |N/A
 |Gremlin-RequestId |The server generated UUID that is used as a request ID. |Yes |N/A
 |Transfer-Encoding |The server should attempt to chunk all responses. |No |"chunked"
+|X-Transaction-Id |The transaction ID associated with this request. Present on all responses within a transaction, including the begin response where the server generates the ID. Not present on non-transactional responses. |No |N/A
 |=========================================================
 
 ===== Response Header Value Options
@@ -1144,13 +1147,14 @@ The following table details the HTTP status codes that Gremlin Server will send:
 |200 |SUCCESS |The server successfully processed a request to completion - there are no messages remaining in this stream.
 |204 |NO CONTENT |The server processed the request but there is no result to return (e.g. an `Iterator` with no elements) - there are no messages remaining in this stream.
 |206 |PARTIAL CONTENT |The server successfully returned some content, but there is more in the stream to arrive - wait for a `SUCCESS` to signify the end of the stream.
-|400 |BAD REQUEST |There was a problem with the HTTP request.
+|400 |BAD REQUEST |There was a problem with the HTTP request. For transaction-specific cases: begin on a graph that does not support transactions, commit or rollback sent without a transaction ID, begin sent with a user-supplied transaction ID, or graph alias mismatch within a transaction.
 |401 |UNAUTHORIZED |The request attempted to access resources that the requesting user did not have access to.
 |403 |FORBIDDEN |The server could authenticate the request, but will not fulfill it.
-|404 |NOT FOUND |The server was unable to find the requested resource.
+|404 |NOT FOUND |The server was unable to find the requested resource. Also returned when a `transactionId` does not correspond to any active transaction on this server. This covers transactions that were already committed, already rolled back, reclaimed by timeout, or never existed.
 |405 |METHOD NOT ALLOWED |The request used an unsupported method. The server only supports POST.
 |413 |REQUEST ENTITY TOO LARGE |The request was too large or the query could not be compiled due to size limitations.
 |500 |INTERNAL SERVER ERROR |A general server error occurred that prevented the request from being processed.
+|503 |SERVICE UNAVAILABLE |The server has reached its maximum number of concurrent transactions and cannot accept a new begin request.
 |505 |HTTP VERSION NOT SUPPORTED |A server error indicating that an unsupported version of HTTP is being used. Only HTTP/1.1 is supported.
 |=========================================================
 
@@ -1165,6 +1169,99 @@ however, will only contain the `Status` and `Exception` without the `Message`.
 For examples of actual requests and responses, take a look at the IO documentation for
 link:https://tinkerpop.apache.org/docs/x.y.z/dev/io/#_requestmessage[GraphSON requests] and
 link:https://tinkerpop.apache.org/docs/x.y.z/dev/io/#_responsemessage[GraphSON responses].
+
+=== Transactions
+
+The HTTP API supports multi-request transactions that allow a client to group multiple Gremlin requests into a single
+atomic unit of work. Transaction lifecycle is controlled using standard Gremlin syntax (`g.tx().begin()`,
+`g.tx().commit()`, `g.tx().rollback()`) and all requests flow through the same `POST /gremlin` endpoint.
+
+==== Protocol Flow
+
+A transaction follows this sequence:
+
+. The client sends `g.tx().begin()` with no `transactionId`. The request body must include the `g` field to identify
+  the target traversal source.
+. The server opens a transaction against the specified graph, generates a String as the transaction ID, and returns it
+  in both the response body (as a `transactionId` field in a map) and the `X-Transaction-Id` response header.
+. For all subsequent requests within the transaction, the client must include the transaction ID in both the
+  `X-Transaction-Id` request header and the `transactionId` field of the request body.
+. The client closes the transaction by sending `g.tx().commit()` or `g.tx().rollback()` with the transaction ID
+  attached.
+
+An example begin request and response:
+
+[source,text]
+----
+POST /gremlin HTTP/1.1
+content-type: application/vnd.gremlin-v4.0+json
+accept: application/vnd.gremlin-v4.0+json
+
+{"gremlin": "g.tx().begin()", "g": "g"}
+----
+
+[source,text]
+----
+HTTP/1.1 200 OK
+Content-Type: application/vnd.gremlin-v4.0+json
+X-Transaction-Id: 3c72a3a8-be41-4a0b-88e5-a88ee6f1e8e4
+
+{"result": {"data": [{"transactionId": "3c72a3a8-be41-4a0b-88e5-a88ee6f1e8e4"}]}}
+----
+
+A subsequent transactional request:
+
+[source,text]
+----
+POST /gremlin HTTP/1.1
+content-type: application/vnd.gremlin-v4.0+json
+accept: application/vnd.gremlin-v4.0+json
+X-Transaction-Id: 3c72a3a8-be41-4a0b-88e5-a88ee6f1e8e4
+
+{"gremlin": "g.addV('person').property('name','alice')", "transactionId": "3c72a3a8-be41-4a0b-88e5-a88ee6f1e8e4"}
+----
+
+==== Client-Side Host Affinity
+
+The client is responsible for routing all requests in a transaction to the same server instance. The `X-Transaction-Id`
+header provides a standard mechanism for load balancers to achieve sticky routing without parsing the request body.
+This design is server-topology agnostic — it works identically whether the backend is a single server, a cluster with
+a load balancer, or a managed service. Each server manages only its own local transaction state.
+
+==== Graph Alias Locking
+
+The graph alias (`g` field) specified in the begin request determines which graph instance the transaction targets. This
+alias is locked for the lifetime of the transaction. If a subsequent request carries a different alias, the server
+rejects it with HTTP 400. This prevents cross-graph operations within a single transaction.
+
+==== Transaction Timeout and Idle Reclamation
+
+Servers implement a configurable transaction timeout (`transactionTimeout`, default 600000ms). The timeout represents
+how long a transaction can sit idle with no requests before the server forcibly rolls it back and removes it. The
+timeout resets on each request received for that transaction, so active transactions are not affected. After a timeout
+fires, any subsequent request with that transaction ID receives a 404 response.
+
+==== Transaction Capacity Limits
+
+Servers enforce a configurable maximum number of concurrent open transactions (`maxConcurrentTransactions`, default
+1000). When the limit is reached, new begin requests are rejected with HTTP 503. Slots are freed when transactions
+close via commit, rollback, or timeout.
+
+==== Error Handling Within a Transaction
+
+If a traversal within an open transaction fails (bad syntax, runtime error, etc.), the server returns the error for
+that request but keeps the transaction open. The client can retry, submit other traversals, or explicitly roll back.
+A failed traversal does not implicitly close or roll back the transaction. Only an explicit commit, explicit rollback,
+or server-side timeout closes a transaction.
+
+==== Thread Affinity
+
+Graph transactions are typically `ThreadLocal`-bound. The server maintains a single-threaded executor per transaction
+to ensure all operations execute on the same thread. This is an important implementation detail for graph system
+providers whose `Transaction` implementation relies on thread-local state.
+
+NOTE: Non-transactional requests (those without a `transactionId`) are not affected by any of the transaction-specific
+behavior described above. They continue to operate exactly as before.
 
 === HTTP Request Interceptor
 
