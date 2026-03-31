@@ -319,6 +319,7 @@ image::https://raw.githubusercontent.com/apache/tinkerpop/master/docs/static/ima
 * Added support for Node 22 and 24 alongside Node 20.
 * Deserialize `set` into `list` when it contains non-hashable elements in `gremlin-python`
 * Fixed `cap()` step throwing an error when used mid-traversal in OLAP.
+* Upgraded `gremlin-go` to Go 1.25.
 
 [[release-3-7-5]]
 === TinkerPop 3.7.5 (Release Date: November 12, 2025)
