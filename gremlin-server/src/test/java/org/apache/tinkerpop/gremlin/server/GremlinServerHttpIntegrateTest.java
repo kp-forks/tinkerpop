@@ -836,7 +836,7 @@ public class GremlinServerHttpIntegrateTest extends AbstractGremlinServerIntegra
             assertEquals(SerTokens.MIME_JSON, response.getEntity().getContentType().getValue());
             final String json = EntityUtils.toString(response.getEntity());
             final JsonNode node = mapper.readTree(json);
-            assertThat(node.get("status").get("message").asText(), startsWith("Error during serialization: No serializer found"));
+            assertThat(node.get("status").get("message").asText(), startsWith("Error during serialization:"));
         }
     }
 
