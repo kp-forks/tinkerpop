@@ -49,7 +49,7 @@ jobs:
       - name: Build with Maven
         run: mvn clean install -pl $EXCLUDE_MODULES -Dci --batch-mode -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn -Dcoverage
       - name: Upload to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
          directory: ./gremlin-tools/gremlin-coverage/target/site
   gremlin-server-default:
@@ -398,7 +398,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: '1.25'
       - name: Get Cached Server Base Image
@@ -420,7 +420,7 @@ jobs:
           mvn clean install -pl $EXCLUDE -q -DskipTests -Dci
           mvn verify -pl :gremlin-go
       - name: Upload to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           working-directory: ./gremlin-go
       - name: Go-Vet
