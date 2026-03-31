@@ -56,7 +56,6 @@ traversal strategies may not function properly.
 
 [[transactions]]
 == Traversal Transactions
-IMPORTANT: 4.0.0-beta.1 Release - Transactions are currently disabled in this beta release.
 
 image:gremlin-coins.png[width=100,float=right] A link:http://en.wikipedia.org/wiki/Database_transaction[database transaction]
 represents a unit of work to execute against the database. A traversals unit of work is affected by usage convention
@@ -89,10 +88,10 @@ The above example is straightforward and represents a good starting point for di
 in relation to the usage convention and graph provider caveats alluded to earlier.
 
 Focusing on remote contexts first, note that it is still possible to issue traversals from `g`, but those will have a
-transaction scope outside of `gtx` and will simply `commit()` on the server if successfully executed or `rollback()`
-on the server otherwise (i.e. one traversal is one transaction). Each isolated transaction will require its own
-`Transaction` object. Multiple `begin()` calls on the same `Transaction` object will produce `GraphTraversalSource`
-instances that are bound to the same transaction, therefore:
+transaction scope outside of `gtx` and will simply behave as self-contained units of work where the graph's own
+transaction semantics apply (i.e. one traversal is one transaction). Each isolated transaction will require its own
+`Transaction` object. Multiple `begin()` calls on the same `Transaction` object are not permitted and will throw an
+`IllegalStateException`:
 
 [source,java]
 ----
@@ -100,17 +99,16 @@ GraphTraversalSource g = traversal().with(conn);
 Transaction tx1 = g.tx();
 Transaction tx2 = g.tx();
 
-// both gtx1a and gtx1b will be bound to the same transaction
-GraphTraversalSource gtx1a = tx1.begin();
-GraphTraversalSource gtx1b = tx1.begin();
-
-// g and gtx2 will not have knowledge of what happens in tx1
+// gtx1 and gtx2 are independent transactions
+GraphTraversalSource gtx1 = tx1.begin();
 GraphTraversalSource gtx2 = tx2.begin();
+
+// g operates outside of both tx1 and tx2
 ----
 
-In remote cases, `GraphTraversalSource` instances spawned from `begin()` are safe to use in multiple threads though
-on the server side they will be processed serially as they arrive. The default behavior of `close()` on a
-`Transaction` for remote cases is to `commit()`, so the following re-write of the earlier example is also valid:
+In remote cases, `GraphTraversalSource` instances spawned from `begin()` are safe to use from a single thread. The
+default behavior of `close()` on a `Transaction` for remote cases is to `commit()`, so the following re-write of the
+earlier example is also valid:
 
 [source,java]
 ----
@@ -137,11 +135,44 @@ graph's transaction model. In most cases, inspection of that object will indicat
 `AbstractThreadLocalTransaction` class, which means that the transaction is bound to the current thread and therefore
 all traversals that execute within that thread are tied to that transaction.
 
-A `ThreadLocal` transaction differs then from the remote case described before because technically any traversal
+A `ThreadLocal` transaction differs then from the remote case described before because technically any traversals
 spawned from `g` or from a `Transaction` will fall under the same transaction scope. As a result, it is wise, when
 trying to write context agnostic Gremlin, to follow the more rigid conventions of the initial example.
 
 The sub-sections that follow offer a bit more insight into each of the usage contexts.
+
+[[tx-remote]]
+=== Remote
+
+Remote transactions operate over the HTTP API. When `g.tx().begin()` is called, the driver sends a begin request to
+the server, which opens a transaction and returns a server-generated transaction ID. All subsequent traversals spawned
+from the resulting `GraphTraversalSource` automatically include this transaction ID in their requests. The server
+routes those requests to the same underlying graph transaction. Calling `tx.commit()` or `tx.rollback()` closes the
+transaction on the server.
+
+The HTTP protocol details are as follows:
+
+. The client sends `g.tx().begin()` with a `g` field identifying the target traversal source. No transaction ID is
+  included on this initial request.
+. The server opens a transaction, generates a transaction ID (a UUID string), and returns it in both the response body
+  (as a `transactionId` field in a map) and the `X-Transaction-Id` response header.
+. For all subsequent requests within the transaction, the client includes the transaction ID in both the
+  `X-Transaction-Id` request header and the `transactionId` field of the request body.
+. The client closes the transaction by sending `g.tx().commit()` or `g.tx().rollback()` with the transaction ID
+  attached.
+
+The graph alias specified in the begin request is locked for the lifetime of the transaction. If a subsequent request
+carries a different alias, the server rejects it with HTTP 400, preventing cross-graph operations within a single
+transaction.
+
+All requests within a transaction must reach the same server instance because transaction state is local to the server
+that created it. The TinkerPop Java GLV handles this automatically by pinning a transaction to a single host at
+creation time. In load-balanced deployments, the `X-Transaction-Id` header is available for load balancers to
+implement sticky routing without parsing the request body.
+
+If a traversal within an open transaction fails (bad syntax, runtime error, etc.), the server returns the error for
+that request but keeps the transaction open. The client can retry, submit other traversals, or explicitly roll back.
+Only an explicit commit, explicit rollback, or server-side timeout closes a transaction.
 
 [[tx-embedded]]
 === Embedded
@@ -269,26 +300,14 @@ the exact same behaviors and link:https://en.wikipedia.org/wiki/ACID[ACID] guara
 [[tx-gremlin-server]]
 === Gremlin Server
 
-The available capability for transactions with <<gremlin-server,Gremlin Server>> is dependent upon the method of
-interaction that is used. The preferred method for <<connecting-gremlin-server,interacting with Gremlin Server>>
-is via websockets and bytecode based requests. The start of the <<transactions,Transactions Section>> describes this
-approach in detail with examples.
+The available capability for transactions with <<gremlin-server,Gremlin Server>> is dependent upon the graph
+configured on the server. The graph must support transactions for `g.tx().begin()` to succeed. If the graph does not
+support transactions (e.g. a basic `TinkerGraph`), the server returns an error. Use `TinkerTransactionGraph` or
+another transaction-capable graph implementation.
 
-Gremlin Server also has the option to accept Gremlin-based scripts. The scripting approach provides access to the
-Graph API and thus also the transactional model described in the <<tx-embedded,embedded>> section. Therefore a single
-script can have the ability to execute multiple transactions per request with complete control provided to the
-developer to commit or rollback transactions as needed.
+The Gremlin Server implements the transactions as part of the HTTP API and it no longer runs on top of sessions.
 
-IMPORTANT: 4.0.0-beta.1 Release - Transactions are currently disabled in this beta release.
-
-There are two methods for sending scripts to Gremlin Server: sessionless and session-based. With sessionless requests
-there will always be an attempt to close the transaction at the end of the request with a commit if there are no errors
-or a rollback if there is a failure. It is therefore unnecessary to close transactions manually within scripts
-themselves. By default, session-based requests do not have this quality. The transaction will be held open on the
-server until the user closes it manually. There is an option to have automatic transaction management for sessions.
-More information on this topic can be found in the <<considering-transactions,Considering Transactions>> Section.
-
-IMPORTANT: 4.0.0-beta.1 Release - Sessions have been removed. All scripts are now sessionless.
+IMPORTANT: Sessions have been removed in 4.0.0. Transactions are no longer tied to sessions.
 
 [[tx-rgp]]
 === Remote Gremlin Providers
