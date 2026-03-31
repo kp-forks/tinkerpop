@@ -1196,6 +1196,16 @@ in 3.5.0, but has been added back as of 3.5.2. Servers wishing to be compatible 
 this message (which is what Gremlin Server does as of 3.5.0). Drivers wishing to be compatible with servers prior to
 3.3.11 may continue to send the message on calls to `close()`, otherwise such code can be removed.
 
+NOTE: As of 3.7.6/3.8.1, the session lifecycle contract described above where sessions are cleaned up only when the
+underlying connection closes can be modified by the `closeSessionPostGraphOp` server setting. When enabled, the
+server will close a session after a successful TX_COMMIT or TX_ROLLBACK bytecode request, independent of the
+connection state. This allows multiple short-lived transaction sessions to share a single WebSocket connection over
+time, which is required by the Java GLV's `reuseConnectionsForSessions` option. This setting defaults to `false`
+to preserve the established 3.5.0 behavior. Providers implementing session support should be aware that when this
+setting is enabled, sessions and connections no longer have a one-to-one lifecycle relationship as a single connection
+may host many sessions sequentially. Providers wishing to support this capability are recommended to use the same
+`closeSessionPostGraphOp` configuration name for consistency across the TinkerPop ecosystem.
+
 **`authentication` operation arguments**
 
 [width="100%",cols="2,2,9",options="header"]

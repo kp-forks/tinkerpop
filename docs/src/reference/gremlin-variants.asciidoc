@@ -888,6 +888,112 @@ Please see the link:https://tinkerpop.apache.org/javadocs/x.y.z/core/org/apache/
 Transactions with Java are best described in <<transactions,The Traversal - Transactions>> section of this
 documentation as Java covers both embedded and remote use cases.
 
+[[gremlin-java-connection-reuse]]
+=== Connection Reuse for Transactions
+
+By default, each call to `g.tx()` opens a new dedicated WebSocket connection for the session that backs the
+transaction. For workloads that issue many short-lived transactions, the overhead of repeatedly establishing and
+tearing down WebSocket connections can become significant, particularly when the client and server are separated by
+network latency.
+
+The `reuseConnectionsForSessions` option on `Cluster.Builder` changes this behavior so that transaction sessions
+borrow connections from the existing connection pool instead of creating dedicated ones. When a transaction commits or
+rolls back, the borrowed connection is returned to the pool and becomes available for the next transaction.
+
+==== Enabling Connection Reuse
+
+This feature requires configuration on both the client and the server (if using Gremlin Server).
+
+On the client, enable `reuseConnectionsForSessions` when building the `Cluster`:
+
+[source,java]
+----
+Cluster cluster = Cluster.build("localhost")
+        .reuseConnectionsForSessions(true)
+        .create();
+GraphTraversalSource g = traversal().withRemote(DriverRemoteConnection.using(cluster));
+----
+
+The same setting can be specified in a YAML configuration file used with `Cluster.open()`:
+
+[source,yaml]
+----
+reuseConnectionsForSessions: true
+----
+
+On servers based on the Gremlin Server, enable `closeSessionPostGraphOp` so that sessions are closed immediately after
+a commit or rollback completes:
+
+[source,yaml]
+----
+# gremlin-server.yaml
+closeSessionPostGraphOp: true
+----
+
+IMPORTANT: Both settings must be configured together. If `reuseConnectionsForSessions` is enabled on the client but
+`closeSessionPostGraphOp` is not enabled on the server, sessions will not be cleaned up after commit or rollback.
+These leaked sessions will accumulate on the server until the configured session timeout is reached, consuming server
+resources unnecessarily.
+
+NOTE: Some Remote Gremlin Providers may handle session cleanup automatically and may not require explicit
+`closeSessionPostGraphOp` configuration. Consult the provider's documentation to determine whether this behavior is
+enabled by default, requires explicit configuration, or is unsupported.
+
+==== Usage
+
+The transaction API itself does not change when connection reuse is enabled. The standard pattern of `begin`, mutate,
+and `commit` or `rollback` applies:
+
+[source,java]
+----
+Cluster cluster = Cluster.build("localhost")
+        .reuseConnectionsForSessions(true)
+        .create();
+GraphTraversalSource g = traversal().withRemote(DriverRemoteConnection.using(cluster));
+
+GraphTraversalSource gtx = g.tx().begin();
+gtx.addV("person").property("name", "marko").iterate();
+gtx.addV("software").property("name", "lop").iterate();
+gtx.tx().commit();
+----
+
+After `commit()` or `rollback()`, the connection is returned to the pool. A subsequent call to `g.tx().begin()` will
+borrow a connection from the pool again, potentially reusing the same underlying WebSocket connection:
+
+A `GraphTraversalSource` obtained from `begin()` cannot be reused after its transaction has been committed or rolled
+back. Attempting to do so will result in an exception. A fresh call to `g.tx().begin()` is required for each new
+transaction.
+
+==== Concurrent Transactions
+
+Multiple transactions can be open simultaneously. Each transaction gets its own server-side session regardless of
+whether the underlying connections are shared. Because the underlying connection is borrowed rather than created, other
+settings on the `Cluster` such as `minConnectionPoolSize` and `maxSimultaneousUsagePerConnection` will have an effect
+on how the connection gets borrowed. These settings may need to be tweaked if there are many concurrent transactions.
+
+==== Restrictions
+
+Connection reuse for transactions has the following restrictions:
+
+* It is designed for short-lived transaction sessions that follow the begin/mutate/commit-or-rollback pattern. It
+  should not be used for classic long-running sessions such as those used with a remote console. For long-running
+  sessions, use the standard `cluster.connect(sessionId)` approach described in the
+  <<sessions,Considering Sessions>> Section.
+* It is not compatible with `HttpChannelizer`. Attempting to call `tx()` when the driver is configured with
+  `HttpChannelizer` will throw an `IllegalStateException`. This restriction applies regardless of the
+  `reuseConnectionsForSessions` setting.
+
+==== When to Use
+
+Connection reuse provides the greatest benefit when:
+
+* Network latency between client and server is significant (e.g. cross-region deployments).
+* Transactions are lightweight (few operations per transaction).
+* Many short-lived transactions are issued in sequence or concurrently.
+
+For local deployments or transactions that perform substantial graph mutations, the connection setup overhead is a
+smaller proportion of the total transaction time and the benefit is correspondingly smaller.
+
 [[gremlin-java-serialization]]
 === Serialization
 
@@ -2941,15 +3047,13 @@ therefore cardinality functions that take a value like `list()`, `set()`, and `s
 [[gremlin-python-limitations]]
 === Limitations
 
-* Traversals that return a `Set` *might* be coerced to a `List` in Python. In the case of Python, number equality
-is different from JVM languages which produces different `Set` results when those types are in use. When this case
-is detected during deserialization, the `Set` is coerced to a `List` so that traversals return consistent
-results within a collection across different languages. If a `Set` is needed then convert `List` results
-to `Set` manually.
-* Traversals that return a `Set` containing non-hashable items, such as `Dictionary`, `Set` and `List`, will be coerced
-into a `List` during deserialization. Python requires set elements to be hashable, for which Gremlin does not. If a
-`Set` is needed, convert elements to hashable equivalents manually (e.g. `dict` to `HashableDict`, `list` to `tuple`,
-`set` to `frozenset`).
+* Traversals that return a `Set` may be coerced to a `List` in Python in two cases. First, when the `Set` contains
+mixed numeric types (e.g. `int` and `float`), because Python number equality differs from the JVM — a Java `Set` of
+`[1, 1.0d]` has two elements, but Python considers `1 == 1.0` and would collapse them to one, so the `Set` is coerced to
+a `List` to preserve all elements consistently across languages. Second, when the `Set` contains non-hashable items such
+as `Dictionary`, `Set`, or `List`, because Python requires set elements to be hashable while Gremlin does not, the `Set`
+is also coerced to a `List`. For this case, if a `Set` is needed, convert elements to hashable equivalents manually
+(e.g. `dict` to `HashableDict`, `list` to `tuple`, `set` to `frozenset`).
 * Gremlin is capable of returning `Dictionary` results that use non-hashable keys (e.g. Dictionary as a key) and Python
 does not support that at a language level. Using GraphSON 3.0 or GraphBinary (after 3.5.0) makes it possible to return
 such results. In all other cases, Gremlin that returns such results will need to be re-written to avoid that sort of
