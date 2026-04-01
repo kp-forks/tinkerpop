@@ -298,7 +298,7 @@ public class GraphServiceTest {
 // build options to trigger different test configurations for a more dynamic approach
 public class GraphServiceTest {
     private static final GraphTraversalSource g = traversal().with(
-            new DriverRemoteConnection('ws://localhost:8182/gremlin'));
+            DriverRemoteConnection.using("localhost", 8182));
     private static final GraphService service = new GraphService(g);
 
     @Test

@@ -560,7 +560,7 @@ class MyType(object):
 graphson_reader = GraphSONReader({MyType.GRAPHSON_TYPE: MyType})
 graphson_writer = GraphSONWriter({MyType: MyType})
 
-connection = DriverRemoteConnection('ws://localhost:8182/gremlin', 'g',
+connection = DriverRemoteConnection('http://localhost:8182/gremlin', 'g',
                                      graphson_reader=graphson_reader,
                                      graphson_writer=graphson_writer)
 ----

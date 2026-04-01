@@ -403,7 +403,7 @@ def g = traversal().with(
 from gremlin_python.process.anonymous_traversal_source import traversal
 
 g = traversal().with(
-          DriverRemoteConnection('ws://localhost:8182/gremlin'))
+          DriverRemoteConnection('http://localhost:8182/gremlin'))
 ----
 
 As shown in the embedded approach in the previous section, once "g" is defined, writing Gremlin is structurally and

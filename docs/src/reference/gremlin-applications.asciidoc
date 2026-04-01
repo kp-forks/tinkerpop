@@ -546,34 +546,34 @@ include::../../../gremlin-dotnet/test/Gremlin.Net.IntegrationTest/Docs/Reference
 [source,javascript]
 ----
 // script
-const client = new Client('ws://localhost:45940/gremlin', { traversalSource: "g" });
+const client = new Client('http://localhost:45940/gremlin', { traversalSource: "g" });
 const conn = client.open();
 const list = conn.submit("g.V().has('person','name',name).out('knows')",{name: 'marko'}).then(function (response) { ... });
 
 // traversal
-const g = gtraversal().with(new DriverRemoteConnection('ws://localhost:8182/gremlin'));
+const g = gtraversal().with(new DriverRemoteConnection('http://localhost:8182/gremlin'));
 const list = g.V().has("person","name","marko").out("knows").toList();
 ----
 [source,python]
 ----
 # script
-client = Client('ws://localhost:8182/gremlin', 'g')
+client = Client('http://localhost:8182/gremlin', 'g')
 list = client.submit("g.V().has('person','name',name).out('knows')",{'name': 'marko'}).all()
 
 # traversal
-g = traversal().with(DriverRemoteConnection('ws://localhost:8182/gremlin','g'))
+g = traversal().with(DriverRemoteConnection('http://localhost:8182/gremlin','g'))
 list = g.V().has("person","name","marko").out("knows").toList()
 ----
 [source,go]
 ----
 // script
-client, err := NewClient("ws://localhost:8182/gremlin")
+client, err := NewClient("http://localhost:8182/gremlin")
 resultSet, err := client.SubmitWithOptions("g.V().has('person','name',name).out('knows')",
 	new(RequestOptionsBuilder).AddBinding("name", "marko").Create())
 result, err := resultSet.All()
 
 // traversal
-remote, err := NewDriverRemoteConnection("ws://localhost:8182/gremlin")
+remote, err := NewDriverRemoteConnection("http://localhost:8182/gremlin")
 g := Traversal_().With(remote)
 list, err := g.V().Has("person", "name", "marko").Out("knows").ToList()
 ----
@@ -1006,10 +1006,10 @@ NOTE: Installing Ganglia will include `org.acplt:oncrpc`, which is an LGPL licen
 Regardless of the output, the metrics gathered are the same. Each metric is prefixed with
 `org.apache.tinkerpop.gremlin.server.GremlinServer` and the following metrics are reported:
 
-* `channels.paused` - The current number of open channels (HTTP and Websocket) that have their writes to buffer paused
+* `channels.paused` - The current number of open HTTP channels that have their writes to buffer paused
 when the `writeBufferHighWaterMark` configuration is exceeded.
-* `channels.total` - The current number of open channels (HTTP and Websocket).
-* `channels.write-pauses` - The total number of pauses across all channels (HTTP and Websocket) to buffer writes where
+* `channels.total` - The current number of open HTTP channels.
+* `channels.write-pauses` - The total number of pauses across all HTTP channels to buffer writes where
 the `writeBufferHighWaterMark` configuration is exceeded, with mean rate, as well as the 1, 5, and 15-minute rates.
 * `engine-name.session.session-id.*` - Metrics related to different `GremlinScriptEngine` instances configured for
 session-based requests where "engine-name" will be the actual name of the engine, such as "gremlin-groovy" and
@@ -1798,13 +1798,9 @@ requests and then use longer per-request timeouts for those specific ones that m
 ** Note that `evaluationTimeout` can only attempt to interrupt the evaluation on timeout.  It allows Gremlin
 Server to "ignore" the result of that evaluation, which means the thread in the `gremlinPool` that did the evaluation
 may still be consumed after the timeout if interruption does not succeed on the thread.
-* When using sessions, there are different options to consider depending on the `Channelizer` implementation being
-used:
-** `WebSocketChannelizer` and `WsAndHttpChannelizer` - Both of these channelizers use the `gremlinPool` only for
-sessionless requests and construct a single threaded pool for each session created. In this way, these channelizers
-tend to optimize sessions to be long-lived. For short-lived sessions, which may be typical when using bytecode based
-remote transactions, quickly creating and destroying these sessions can be expensive. It is likely that there will be
-increased garbage collection times and frequency as well as a general increase in overall server processing.
+* When using transactions, the server dedicates resources to maintain transaction state for each open transaction. For
+high concurrency workloads with many open transactions, the server may experience increased memory usage, increased
+garbage collection times and frequency as well as a general increase in overall server processing.
 * Graph element serialization for `Vertex` and `Edge` can be expensive, as their data structures are complex given the
 possible existence of multi-properties and meta-properties. When returning data from Gremlin Server only return the
 data that is required. For example, if only two properties of a `Vertex` are needed then simply return the two rather
@@ -1831,15 +1827,15 @@ therefore just queue another heavy request.
 ** Consider the shape of query results as they can have an impact on server performance. The "shape" refers to the form
 of the result given the query. For example, `g.V()` and `g.V().fold()` both return the same results (i.e. all the
 vertices in the graph) but the former returns them one at a time in a stream and the latter collects them all in
-memory in a `List` and then returns the one `List` result. Writing queries in ways that allow results that can stream
-(only applies for websockets) is preferable and will allow the server to perform better. Another aspect of "shape"
-can come into play when returning data of individual graph elements. For example, the `g.V()` form of query will stream,
-but if each `Vertex` returned has lots of properties (e.g. properties with large strings or heavy blobs), this could
-trigger scenarios where each streamed batch immediately exceeds `writeBufferHighWaterMark`. Simply exceeding the
-`writeBufferHighWaterMark` may not trigger a pause as the server may quickly flush the buffer before the next batch, but
-one could see how easily a write pause could be triggered in that state. It could make sense to configure a smaller
-`batchSize` for queries results that have heavy individual objects in them as that would reduce the byte size of the
-batch and allow buffer flushes to happen more often (though that may be a cost in and of itself).
+memory in a `List` and then returns the one `List` result. Writing queries in ways that allow results to stream is
+preferable and will allow the server to perform better. Another aspect of "shape" can come into play when returning data
+of individual graph elements. For example, the `g.V()` form of query will stream, but if each `Vertex` returned has lots
+of properties (e.g. properties with large strings or heavy blobs), this could trigger scenarios where each streamed
+batch immediately exceeds `writeBufferHighWaterMark`. Simply exceeding the `writeBufferHighWaterMark` may not trigger a
+pause as the server may quickly flush the buffer before the next batch, but one could see how easily a write pause could
+be triggered in that state. It could make sense to configure a smaller `batchSize` for queries results that have heavy
+individual objects in them as that would reduce the byte size of the batch and allow buffer flushes to happen more often
+(though that may be a cost in and of itself).
 
 [[parameterized-scripts]]
 ==== Parameterized Scripts
