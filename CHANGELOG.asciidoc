@@ -23,7 +23,7 @@ under the License.
 image::https://raw.githubusercontent.com/apache/tinkerpop/master/docs/static/images/gremlin-zamfir.png[width=185]
 
 [[release-3-7-6]]
-=== TinkerPop 3.7.6 (NOT OFFICIALLY RELEASED YET)
+=== TinkerPop 3.7.6 (Release Date: April 1, 2026)
 
 * Integrated Python driver examples into automated build process to ensure examples remain functional.
 * Fixed bug in `IdManager` for `VertexProperty` id creation to better ensure identifier uniqueness.
@@ -38,6 +38,22 @@ image::https://raw.githubusercontent.com/apache/tinkerpop/master/docs/static/ima
 * Deserialize `set` into `list` when it contains non-hashable elements in `gremlin-python`
 * Fixed `cap()` step throwing an error when used mid-traversal in OLAP.
 * Upgraded `gremlin-go` to Go 1.25.
+
+==== Bugs
+
+* TINKERPOP-3214 TinkerGraph VertexProperty Id duplication
+* TINKERPOP-3222 ReservedKeysVerificationStrategy verification fails when the invalid AddPropertyStep has an explicit cardinality set
+* TINKERPOP-3223 Argument to SubgraphStrategy.Builder.edges changes semantics when used along vertices
+* TINKERPOP-3230 GraphSON3 deserializer doesn't check for required meta field
+* TINKERPOP-3235 mergeE argument validation for onCreate overrides
+
+==== Improvements
+
+* TINKERPOP-3210 cap() has strange interactions with barriers and side effects in OLAP
+* TINKERPOP-3213 Re-use connections for sessions
+* TINKERPOP-3217 Add mechanism to close session without closing connection on server
+* TINKERPOP-3232 Support deserialization of a set that has a non hashable element
+* TINKERPOP-3236 Limit use of FloatLiteral as step arguments in grammar
 
 [[release-3-7-5]]
 === TinkerPop 3.7.5 (Release Date: November 12, 2025)
