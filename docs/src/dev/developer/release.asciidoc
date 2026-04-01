@@ -217,7 +217,7 @@ current release was under development as this new release will have those change
 .. Manually update the `__version__` for `gremlin-python` in `gremlin-python/src/main/python/gremlin_python/__init__.py`
 . `mvn clean install -DskipTests` to update GLV versions
 .. Review `Gremlin.Net.csproj`, `Gremlin.Net.Template.csproj` and `Gremlin.Net.Template.nuspec` in `gremlin-dotnet`
-.. Review `package.json` and `package-lock.json` in `gremlin-javascript` and in `gremlint`
+.. Review `package.json` and `package-lock.json` in `gremlin-javascript`, `gremlint`, and `gremlin-mcp`
 . `pushd gremlin-console/bin; ln -fs ../target/apache-tinkerpop-gremlin-console-xx.yy.zz-standalone/bin/gremlin.sh gremlin.sh; popd`
 . `git diff` and review the updated files
 . `mvn clean install` - need to build first so that the right version of the console is used with `bin/publish-docs.sh`

@@ -23,7 +23,7 @@ under the License.
 image::https://raw.githubusercontent.com/apache/tinkerpop/master/docs/static/images/gremlin-67.png[width=185]
 
 [[release-3-8-1]]
-=== TinkerPop 3.8.1 (NOT OFFICIALLY RELEASED YET)
+=== TinkerPop 3.8.1 (Release Date: April 1, 2026)
 
 This release also includes changes from <<release-3-7-6, 3.7.6>>.
 
@@ -37,6 +37,29 @@ This release also includes changes from <<release-3-7-6, 3.7.6>>.
 * Improved Gremlint formatting to keep the first argument for a step on the same line if line breaks were required to meet max line length.
 * Improved Gremlint formatting to do greedy argument packing when possible so that more arguments can appear on a single line.
 * Add custom type writer and serializer to gremlin-go
+
+==== Bugs
+
+* TINKERPOP-3214 TinkerGraph VertexProperty Id duplication
+* TINKERPOP-3218 Emit before repeat with barrier doesn't emit
+* TINKERPOP-3222 ReservedKeysVerificationStrategy verification fails when the invalid AddPropertyStep has an explicit cardinality set
+* TINKERPOP-3223 Argument to SubgraphStrategy.Builder.edges changes semantics when used along vertices
+* TINKERPOP-3230 GraphSON3 deserializer doesn't check for required meta field
+* TINKERPOP-3235 mergeE argument validation for onCreate overrides
+
+==== Improvements
+
+* TINKERPOP-2992 Gherkin suite missing orderability on set, uuid, date
+* TINKERPOP-3178 Clarify choose() with consistent semantics *(breaking)*
+* TINKERPOP-3210 cap() has strange interactions with barriers and side effects in OLAP
+* TINKERPOP-3213 Re-use connections for sessions
+* TINKERPOP-3217 Add mechanism to close session without closing connection on server
+* TINKERPOP-3219 Add public serialization API in gremlin-go for alternative transport protocols
+* TINKERPOP-3227 Add upgrade documentation for transaction connection reuse
+* TINKERPOP-3231 Optimize P.setValue() and P.getValue()
+* TINKERPOP-3232 Support deserialization of a set that has a non hashable element
+* TINKERPOP-3236 Limit use of FloatLiteral as step arguments in grammar
+* TINKERPOP-3237 Add Custom Type Writer/Serializer API for gremlin-go
 
 [[release-3-8-0]]
 === TinkerPop 3.8.0 (Release Date: November 12, 2025)

@@ -18,7 +18,7 @@ under the License.
 ////
 == TinkerPop 3.8.1
 
-*Release Date: NOT OFFICIALLY RELEASED YET*
+*Release Date: April 1, 2026*
 
 Please see the link:https://github.com/apache/tinkerpop/blob/3.8.1/CHANGELOG.asciidoc#release-3-8-1[changelog] for a
 complete list of all the modifications that are part of this release.
@@ -139,6 +139,4 @@ New Gherkin test tags have been added for scenarios that require the graph to su
 `@AllowUUIDPropertyValues`. Providers whose graphs do not support storing these types as property values should exclude
 the relevant tags in their `@CucumberOptions`. The full list of tags can be found
 link:https://tinkerpop.apache.org/docs/3.8.1/dev/developer/#gherkin-tags[here].
-
-==== Graph Driver Providers
 
