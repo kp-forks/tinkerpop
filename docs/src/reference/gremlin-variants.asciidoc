@@ -1470,8 +1470,6 @@ g.inject(java.awt.Color.red, "hi", 123).is(P.typeOf(java.awt.Color))
 
 [[gremlin-javascript]]
 == Gremlin-JavaScript
-IMPORTANT: 4.0.0-beta.1 Release - Gremlin-JavaScript is not available in this beta, please consider testing with
-Java or Python.
 
 image:gremlin-js.png[width=130,float=right] Apache TinkerPop's Gremlin-JavaScript implements Gremlin within the
 JavaScript language. It targets Node.js runtime and can be used on different operating systems on any Node.js 22 or
@@ -1495,6 +1493,7 @@ The following table outlines recommended runtime versions by the release in whic
 |3.7.0 |≥18 |9.6.7
 |3.7.4 |≥20 |10.8.2
 |3.8.0 |≥20 |10.8.2
+|4.0.0-beta.2 |≥22 |10.8.2
 |===
 
 [[gremlin-javascript-connecting]]
@@ -1507,15 +1506,30 @@ the remote end.
 
 [source,javascript]
 ----
-const g = traversal().with(new DriverRemoteConnection('ws://localhost:8182/gremlin'));
+const g = traversal().with_(new DriverRemoteConnection('http://localhost:8182/gremlin'));
 ----
 
-Gremlin-JavaScript supports plain text SASL authentication, you can set it on the connection options.
+Gremlin-JavaScript supports basic HTTP authentication via request interceptors. The `auth.basic()` function returns an
+interceptor that adds an `Authorization` header to each request.
 
 [source,javascript]
 ----
-const authenticator = new gremlin.driver.auth.PlainTextSaslAuthenticator('myuser', 'mypassword');
-const g = traversal().with(new DriverRemoteConnection('ws://localhost:8182/gremlin', { authenticator });
+const { auth } = gremlin.driver;
+const g = traversal().with_(new DriverRemoteConnection('http://localhost:8182/gremlin', {
+  interceptors: auth.basic('myuser', 'mypassword')
+}));
+----
+
+Signature Version 4 authentication is also supported via `auth.sigv4()`. This requires the
+`@smithy/signature-v4`, `@smithy/hash-node`, and optionally `@aws-sdk/credential-providers` packages to be installed.
+When no `credentialsProvider` is supplied, the default credential provider chain is used.
+
+[source,javascript]
+----
+const { auth } = gremlin.driver;
+const g = traversal().with_(new DriverRemoteConnection('http://localhost:8182/gremlin', {
+  interceptors: auth.sigv4("service-region", "service-name")
+}));
 ----
 
 Given that I/O operations in Node.js are asynchronous by default, <<terminal-steps,Terminal Steps>> return a `Promise`:
@@ -1541,7 +1555,7 @@ const names = await g.V().hasLabel('person').values('name').toList();
 console.log(names);
 ----
 
-Some connection options can also be set on individual requests made through the using `with()` step on the
+Some connection options can also be set on individual requests made through the using `with_()` step on the
 `TraversalSource`. For instance to set request timeout to 500 milliseconds:
 
 [source,javascript]
@@ -1549,14 +1563,28 @@ Some connection options can also be set on individual requests made through the 
 const vertices = await g.with_('evaluationTimeout', 500).V().out('knows').toList()
 ----
 
-The following options are allowed on a per-request basis in this fashion: `batchSize`, `requestId`, `userAgent` and
-`evaluationTimeout` (formerly `scriptEvaluationTimeout` which is also supported but now deprecated).
+The following options are allowed on a per-request basis in this fashion: `batchSize`, `requestId`, `userAgent`,
+`bulkResults`, `materializeProperties` and `evaluationTimeout`.
 
 [[gremlin-javascript-imports]]
 === Common Imports
 
 There are a number of classes, functions and tokens that are typically used with Gremlin. The following imports
-provide most of the typical functionality required to use Gremlin:
+provide most of the typical functionality required to use Gremlin.
+
+==== ES Modules
+
+[source,javascript]
+----
+import gremlin from 'gremlin';
+
+const traversal = gremlin.process.AnonymousTraversalSource.traversal;
+const __ = gremlin.process.statics;
+const DriverRemoteConnection = gremlin.driver.DriverRemoteConnection;
+const { P: p, TextP: textp, column, direction, pick, pop, order, scope, t, cardinality, CardinalityValue } = gremlin.process;
+----
+
+==== CommonJS
 
 [source,javascript]
 ----
@@ -1604,71 +1632,54 @@ can be passed in the constructor of a new `Client` or `DriverRemoteConnection` :
 |Key |Type |Description |Default
 |url |String |The resource uri. |None
 |options |Object |The connection options. |{}
-|options.ca |Array |Trusted certificates. |undefined
-|options.cert |String/Array/Buffer |The certificate key. |undefined
-|options.mimeType |String |The mime type to use. |'application/vnd.gremlin-v3.0+json'
-|options.pfx |String/Buffer |The private key, certificate, and CA certs. |undefined
-|options.reader |GraphSONReader/GraphBinaryReader |The reader to use. |select reader according to mimeType
-|options.writer |GraphSONWriter |The writer to use. |select writer according to mimeType
-|options.rejectUnauthorized |Boolean |Determines whether to verify or not the server certificate. |undefined
 |options.traversalSource |String |The traversal source. |'g'
-|options.authenticator |Authenticator |The authentication handler to use. |undefined
-|options.processor |String |The name of the opProcessor to use, leave it undefined or set 'session' when session mode. |undefined
-|options.session |String |The sessionId of Client in session mode. undefined means session-less Client. |undefined
-|options.enableUserAgentOnConnect |Boolean |Determines if a user agent will be sent during connection handshake. |true
-|options.headers |Object |An associative array containing the additional header key/values for the initial request. |undefined
-|options.pingEnabled |Boolean |Setup ping interval. |true
-|options.pingInterval |Number |Ping request interval in ms if ping enabled. |60000
-|options.pongTimeout |Number |Timeout of pong response in ms after sending a ping. |30000
+|options.headers |Object |Additional HTTP header key/values included with each request. |undefined
+|options.interceptors |RequestInterceptor/RequestInterceptor[] |One or more functions that can modify the HTTP request before it is sent. |undefined
+|options.reader |GraphBinaryReader |The reader to use for deserializing responses. |GraphBinaryReader
+|options.writer |GraphBinaryWriter |The writer to use for serializing requests. |GraphBinaryWriter
+|options.enableUserAgentOnConnect |Boolean |Determines if a user agent header will be sent with requests. |true
+|options.agent |Agent |A custom `node:http` or `node:https` Agent for connection pooling or proxy configuration. |undefined
 |=========================================================
 
 [[gremlin-javascript-logging]]
 === Logging
+
+IMPORTANT: 4.0.0-beta.2 Release - Event-based logging is not yet implemented for the HTTP driver. Listeners can be registered
+but will not currently receive any events. This functionality is planned for a future release.
 
 The Gremlin-JavaScript driver emits connection events for logging and monitoring, but these events are silently ignored unless a listener is attached. Use the `addListener()` method to subscribe to events after creating a `DriverRemoteConnection` or `Client`:
 
 [source,javascript]
 ----
 // Using DriverRemoteConnection
-const dc = new DriverRemoteConnection('ws://localhost:8182/gremlin');
+const dc = new DriverRemoteConnection('http://localhost:8182/gremlin');
 
 dc.addListener('log', (message) => {
   console.log('[Gremlin Log]', message);
 });
 
-dc.addListener('socketError', (err) => {
+dc.addListener('error', (err) => {
   console.error('[Gremlin Error]', err);
 });
 
-dc.addListener('close', (code, message) => {
-  console.warn('[Gremlin Close]', code, message);
-});
-
-const g = traversal().withRemote(dc);
+const g = traversal().with_(dc);
 
 // Using Client
-const client = new Client('ws://localhost:8182/gremlin', { traversalSource: 'g' });
+const client = new Client('http://localhost:8182/gremlin', { traversalSource: 'g' });
 
 client.addListener('log', (message) => {
   console.log('[Gremlin Log]', message);
 });
 
-client.addListener('socketError', (err) => {
+client.addListener('error', (err) => {
   console.error('[Gremlin Error]', err);
 });
-
-client.addListener('close', (code, message) => {
-  console.warn('[Gremlin Close]', code, message);
-});
-
-await client.open();
 ----
 
 Available events:
 
-* `log` - General connection logs (open, ping, pong, close, errors)
-* `socketError` - WebSocket errors
-* `close` - Connection close with status code and message
+* `log` - General connection logs and diagnostics
+* `error` - Request errors
 
 To remove a listener, use `removeListener(event, handler)` with the same handler reference.
 
@@ -1698,32 +1709,40 @@ re-construction machine-side.
 [[gremlin-javascript-transactions]]
 === Transactions
 
-IMPORTANT: Transaction support over HTTP is not yet implemented in Gremlin-JavaScript. This will be addressed by the
-official 4.0.0 release.
+To get a full understanding of this section, it would be good to start by reading the <<transactions,Transactions>>
+section of this documentation, which discusses transactions in the general context of TinkerPop itself. This section
+builds on that content by demonstrating the transactional syntax for Javascript.
 
-[[gremlin-javascript-lambda]]
-=== The Lambda Solution
-
-Supporting link:https://en.wikipedia.org/wiki/Anonymous_function[anonymous functions] across languages is difficult as
-most languages do not support lambda introspection and thus, code analysis. In Gremlin-Javascript, a Gremlin lambda
-should be represented as a zero-arg callable that returns a string representation of the lambda expected for use in the
-traversal. The returned lambda should be written as a Gremlin-Groovy string. When the lambda is represented in
-`Bytecode` its language is encoded such that the remote connection host can infer which translator and ultimate
-execution engine to use.
+IMPORTANT: 4.0.0-beta.2 Release - Transactions are not yet implemented for the HTTP driver. This functionality is
+planned for a future release.
 
 [source,javascript]
 ----
-g.V().out().
-  map(() => "it.get().value('name').length()").
-  sum().
-  toList().then(total => console.log(total))
+const g = traversal().with_(new DriverRemoteConnection('http://localhost:8182/gremlin'));
+const tx = g.tx(); // create a Transaction
+
+// spawn a new GraphTraversalSource binding all traversals established from it to tx
+const gtx = tx.begin();
+
+// execute traversals using gtx occur within the scope of the transaction held by tx. the
+// tx is closed after calls to commit or rollback and cannot be re-used. simply spawn a
+// new Transaction from g.tx() to create a new one as needed. the g context remains
+// accessible through all this as a sessionless connection.
+Promise.all([
+  gtx.addV("person").property("name", "jorge").iterate(),
+  gtx.addV("person").property("name", "josh").iterate()
+]).then(() => {
+  return tx.commit();
+}).catch(() => {
+  return tx.rollback();
+});
 ----
 
-TIP: When running into situations where Groovy cannot properly discern a method signature based on the `Lambda`
-instance created, it will help to fully define the closure in the lambda expression - so rather than
-`() => "it.get().value('name')"`, prefer `() => "x -> x.get().value('name')"`.
+[[gremlin-javascript-gvalue]]
+=== GValue Parameterization
 
-WARNING: As explained throughout the documentation, when possible <<a-note-on-lambdas,avoid>> lambdas.
+IMPORTANT: 4.0.0-beta.2 Release - `GValue` parameterization is not yet implemented for the JavaScript driver. This
+functionality is planned for a future release.
 
 [[gremlin-javascript-scripts]]
 === Submitting Scripts
@@ -1733,7 +1752,7 @@ It is possible to submit parametrized Gremlin scripts to the server as strings, 
 [source,javascript]
 ----
 const gremlin = require('gremlin');
-const client = new gremlin.driver.Client('ws://localhost:8182/gremlin', { traversalSource: 'g' });
+const client = new gremlin.driver.Client('http://localhost:8182/gremlin', { traversalSource: 'g' });
 
 const result1 = await client.submit('g.V(vid)', { vid: 1 });
 const vertex = result1.first();
@@ -1758,8 +1777,8 @@ request.
 const result = await client.submit("g.V().repeat(both()).times(100)", null, { evaluationTimeout: 5000 })
 ----
 
-The following options are allowed on a per-request basis in this fashion: `batchSize`, `requestId`, `userAgent`, `materializeProperties` and
-`evaluationTimeout` (formerly `scriptEvaluationTimeout` which is also supported but now deprecated).
+The following options are allowed on a per-request basis in this fashion: `batchSize`, `requestId`, `userAgent`,
+`bulkResults`, `materializeProperties` and `evaluationTimeout`.
 
 IMPORTANT: The preferred method for setting a per-request timeout for scripts is demonstrated above, but those familiar
 with bytecode may try `g.with(EVALUATION_TIMEOUT, 500)` within a script. Scripts with multiple traversals and multiple
@@ -1767,7 +1786,12 @@ timeouts will be interpreted as a sum of all timeouts identified in the script f
 
 ==== Processing results as they are returned from the Gremlin server
 
-The Gremlin JavaScript driver maintains a WebSocket connection to the Gremlin server and receives messages according to the `batchSize` parameter on the per request settings or the `resultIterationBatchSize` value configured for the Gremlin server. When submitting scripts the default behavior is to wait for the entire result set to be returned from a query before allowing any processing on the result set.
+IMPORTANT: 4.0.0-beta.2 Release - `client.stream()` is not yet implemented for the HTTP driver and will throw an error if
+called. This functionality is planned for a future release.
+
+The Gremlin JavaScript driver receives results according to the `batchSize` parameter on the per-request settings or the
+`resultIterationBatchSize` value configured for the Gremlin server. When submitting scripts the default behavior is to
+wait for the entire result set to be returned from a query before allowing any processing on the result set.
 
 The following examples assume that you have 100 vertices in your graph.
 
@@ -1797,7 +1821,7 @@ readable.on('end', () => {
 })
 ----
 
-If you are using NodeJS >= 10.0, you can asynchronously iterate readable streams:
+Readable streams can also be consumed using asynchronous iteration:
 
 
 [source,javascript]
@@ -2512,11 +2536,11 @@ authentication provided as reference.
 ----
 # Plain text authentication
 g = traversal().with_(DriverRemoteConnection(
-    'ws://localhost:8182/gremlin', 'g', auth=basic('stephen', 'password')))
+    'http://localhost:8182/gremlin', 'g', auth=basic('stephen', 'password')))
 
 # SigV4 authentication
 g = traversal().with_(DriverRemoteConnection(
-    'ws://localhost:8182/gremlin', 'g', auth=sigv4(service-region, service-name)))
+    'http://localhost:8182/gremlin', 'g', auth=sigv4(service-region, service-name)))
 ----
 
 If you authenticate to a remote <<connecting-gremlin-server,Gremlin Server>> or
