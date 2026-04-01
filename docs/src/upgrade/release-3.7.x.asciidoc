@@ -25,7 +25,7 @@ image::gremlin-zamfir.png[width=185]
 
 == TinkerPop 3.7.6
 
-*Release Date: NOT OFFICIALLY RELEASED YET*
+*Release Date: April 1, 2026*
 
 Please see the link:https://github.com/apache/tinkerpop/blob/3.7.6/CHANGELOG.asciidoc#release-3-7-6[changelog] for a
 complete list of all the modifications that are part of this release.
@@ -199,8 +199,6 @@ on the successful completion of a graph operation (commit/rollback). This will p
 has enabled this option as the driver will *not* close the underlying WebSocket connection as a signal to end the
 session. Gremlin Server has added an option like this called `closeSessionPostGraphOp`. Remote graph providers are
 encouraged to add the same functionality.
-
-==== Graph Driver Providers
 
 
 == TinkerPop 3.7.5
