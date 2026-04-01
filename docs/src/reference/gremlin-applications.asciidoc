@@ -1306,7 +1306,7 @@ is hardly feasible, because such requests get full access to Gremlin Server's ex
 execution of `GraphFactory.open()` or `GraphTraversalSource.getGraph()` methods without resorting to TinkerPop
 implementation details (that is, internal API's that can change without notice).
 
-IMPORTANT: 4.0.0-beta.1 Release - These authorization mechanisms don't currently apply due to the removal of Bytecode.
+IMPORTANT: 4.0.0-beta.2 Release - These authorization mechanisms don't currently apply due to the removal of Bytecode.
 
 The three mechanisms for authorization each have their merits in terms of simplicity and flexibility. The table below
 gives an overview.
@@ -1339,7 +1339,7 @@ such as read only access can be either applied at authorization time as policy i
 execution time as a result of an applied `Strategy` (denoted as 'hybrid' bytecode analysis in the table). A code
 example pursuing the former option is provided in the <<authz-code-example, next section>>.
 
-IMPORTANT: 4.0.0-beta.1 Release - passive and active authorization mechanisms are not supported in this beta
+IMPORTANT: 4.0.0-beta.2 Release - passive and active authorization mechanisms are not supported in this beta
 because bytecode has been replaced with GremlinLang.
 
 NOTE: Gremlin Server is not shipped with `Authorizer` implementations, because these would heavily depend on the external
@@ -2114,21 +2114,33 @@ above with the use of the `maximumSize`.
 [[considering-transactions]]
 ==== Considering Transactions
 
-Gremlin Server performs automated transaction handling for "sessionless" requests (i.e. no state between requests) and
-for "in-session" requests with that feature enabled. It will automatically commit or rollback transactions depending
-on the success or failure of the request.
+Non-transactional requests (those without a `transactionId`) behave as self-contained units of work where the graph's
+own transaction semantics apply. Each traversal executes within its own transaction as managed by the graph
+implementation itself. Transactional requests participate in a transaction opened via `g.tx().begin()`, where the
+client explicitly controls the lifecycle through `g.tx().commit()` and `g.tx().rollback()`.
 
-IMPORTANT: Understand the transactional capabilities of the graph configured in Gremlin Server when using sessions. For
-example, a basic `TinkerGraph` in its non-transactional form won't be able to rollback a failed traversal, therefore it
-is quite possible to get partial updates if the first part of a traversal succeeds and the rest fails.
+IMPORTANT: Understand the transactional capabilities of the graph configured in Gremlin Server. For example, a basic
+`TinkerGraph` does not support transactions. Use `TinkerTransactionGraph` or another transaction-capable graph
+implementation. Attempting to begin a transaction on a non-transactional graph will result in an error.
 
-Another aspect of Transaction Management that should be considered is the usage of the `strictTransactionManagement`
-setting.  It is `false` by default, but when set to `true`, it forces the user to pass `aliases` for all requests.
-The aliases are then used to determine which graphs will have their transactions closed for that request. Running
-Gremlin Server in this configuration should be more efficient when there are multiple graphs being hosted as
-Gremlin Server will only close transactions on the graphs specified by the `aliases`. Keeping this setting `false`,
-will simply have Gremlin Server close transactions on all graphs for every request.
+Two settings in the Gremlin Server YAML control transaction resource usage:
 
+* `transactionTimeout` (default: 600000ms) -- How long a transaction can sit idle before the server forcibly rolls it
+  back. The timeout resets on each request received for that transaction.
+* `maxConcurrentTransactions` (default: 1000) -- The maximum number of open transactions allowed. When the limit is
+  reached, new begin requests are rejected with HTTP 503.
+
+Each open transaction consumes a dedicated thread on the server to maintain thread-local transaction state for the
+underlying graph. Ensure that clients close transactions promptly and that the `transactionTimeout` is set to reclaim
+abandoned ones. The `transactions` gauge metric can be used to monitor usage.
+
+In load-balanced deployments, all requests within a transaction must reach the same server instance because
+transaction state is local to the server that created it. The `X-Transaction-Id` header is available for load
+balancers to implement sticky routing without parsing the request body. A transactional request that arrives at the
+wrong server receives a 404 response.
+
+A failed traversal within an open transaction does not cause the server to close or rollback the transaction. The
+transaction remains open until the client explicitly commits, explicitly rolls back, or the idle timeout fires.
 
 [[request-retry]]
 ==== Request Retry

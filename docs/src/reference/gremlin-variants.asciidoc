@@ -913,7 +913,7 @@ Remote systems like Gremlin Server and Remote Gremlin Providers respond to reque
 format and respond by serializing results to some format to be interpreted by the client. For JVM-based languages,
 there is a single option for serialization: GraphBinary.
 
-IMPORTANT: 4.0.0-beta.1 Release - There is temporary support for GraphSON in the Java driver which will help with
+IMPORTANT: 4.0.0-beta.2 Release - There is temporary support for GraphSON in the Java driver which will help with
 testing, but it is expected that the drivers will only support GraphBinary when 4.0 is fully released.
 
 It is important that the client and server have the same serializers configured in the same way or else one or the
