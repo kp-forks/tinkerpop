@@ -27,6 +27,9 @@ Gremlin Compiler enables a particular query language to work on any TinkerPop-en
 [[sparql-gremlin]]
 == SPARQL-Gremlin
 
+WARNING: The sparql-gremlin module is not included in the 4.0.0-beta.2 distribution. The examples in this
+section are presented as static code and will be restored in a future release.
+
 image::gremlintron.png[width=225]
 
 The SPARQL-Gremlin compiler, transforms link:https://en.wikipedia.org/wiki/SPARQL[SPARQL] queries into Gremlin
@@ -66,7 +69,7 @@ gremlin> :plugin use tinkerpop.sparql
 Installing this plugin will download appropriate dependencies and import certain classes to the console so that they
 may be used as follows:
 
-[gremlin-groovy,modern]
+[source,groovy]
 ----
 graph = TinkerFactory.createModern()
 g = traversal(SparqlTraversalSource).with(graph)                                                       <1>
@@ -98,7 +101,7 @@ The SPARQL-Gremlin compiler supports the following prefixes to traverse the grap
 
 Note that element IDs and labels are treated like normal properties, hence they can be accessed using the same pattern:
 
-[gremlin-groovy,existing]
+[source,groovy]
 ----
 g.sparql("""SELECT ?name ?id ?label 
 	WHERE { 
@@ -228,7 +231,7 @@ The following section presents examples of SPARQL queries that are currently cov
 
 Select all vertices in the graph.
 
-[gremlin-groovy,existing]
+[source,groovy]
 ----
 g.sparql("""SELECT * WHERE { }""")
 ----
@@ -237,7 +240,7 @@ g.sparql("""SELECT * WHERE { }""")
 
 Select all vertices with the label `person`.
 
-[gremlin-groovy,existing]
+[source,groovy]
 ----
 g.sparql("""SELECT * WHERE {  ?person v:label "person" .}""")
 ----
@@ -246,7 +249,7 @@ g.sparql("""SELECT * WHERE {  ?person v:label "person" .}""")
 
 Select the values of the properties `name` and `age` for each `person` vertex.
 
-[gremlin-groovy,existing]
+[source,groovy]
 ----
 g.sparql("""SELECT ?name ?age
 WHERE {
@@ -259,7 +262,7 @@ WHERE {
 
 Select only those persons who created a project.
 
-[gremlin-groovy,existing]
+[source,groovy]
 ----
 g.sparql("""SELECT ?name ?age
 WHERE {
@@ -273,7 +276,7 @@ WHERE {
 
 Select only those persons who are older than 30.
 
-[gremlin-groovy,existing]
+[source,groovy]
 ----
 g.sparql("""SELECT ?name ?age
 WHERE {
@@ -287,7 +290,7 @@ WHERE {
 
 Select the distinct names of the created projects.
 
-[gremlin-groovy,existing]
+[source,groovy]
 ----
 g.sparql("""SELECT DISTINCT ?name
 WHERE {
@@ -302,7 +305,7 @@ WHERE {
 
 Select the distinct names of all Java projects.
 
-[gremlin-groovy,existing]
+[source,groovy]
 ----
 g.sparql("""SELECT DISTINCT ?name
 WHERE {
@@ -318,7 +321,7 @@ WHERE {
 
 Select all persons who have developed a software in java using union.
 
-[gremlin-groovy,existing]
+[source,groovy]
 ----
 g.sparql("""SELECT * 
 WHERE {
@@ -345,7 +348,7 @@ WHERE {
 
 Select all vertices with the label `person` and order them by their age.
 
-[gremlin-groovy,existing]
+[source,groovy]
 ----
 g.sparql("""SELECT ?age ?name
 WHERE {
@@ -359,7 +362,7 @@ WHERE {
 
 Select all vertices with the label `person` and group them by their age.
 
-[gremlin-groovy,existing]
+[source,groovy]
 ----
 g.sparql("""SELECT ?age 
 WHERE {
@@ -388,7 +391,7 @@ WHERE {
 Accessing the Meta-Property of a graph element. Meta-Property can be perceived as the reified statements in an RDF
 graph.
 
-[gremlin-groovy,theCrew]
+[source,groovy]
 ----
 g = traversal(SparqlTraversalSource).with(graph)
 g.sparql("""SELECT ?name ?startTime
@@ -405,7 +408,7 @@ STAR-shaped queries are the queries that form/follow a star-shaped execution pla
 can be perceived as path queries or neighborhood queries. For instance, getting all the information about a specific
 `person` or `software`.
 
-[gremlin-groovy,existing]
+[source,groovy]
 ----
 g.sparql("""SELECT ?age ?software ?lang ?name
 WHERE {
@@ -422,7 +425,7 @@ WHERE {
 The `sparql()`-step takes a SPARQL query and returns a result. That result can be further processed by standard Gremlin
 steps as shown below:
 
-[gremlin-groovy,modern]
+[source,groovy]
 ----
 g = traversal(SparqlTraversalSource).with(graph)
 g.sparql("SELECT ?name ?age WHERE { ?person v:name ?name . ?person v:age ?age }")

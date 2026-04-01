@@ -145,7 +145,10 @@ WARNING: OLTP operations on `HadoopGraph` are not efficient. They require linear
 for large graphs. In such large graph situations, make use of <<traversalvertexprogram,TraversalVertexProgram>>
 which is the OLAP Gremlin machine.
 
-[gremlin-groovy]
+WARNING: The Hadoop and Spark modules are not included in the 4.0.0-beta.2 distribution. These examples will
+be restored in a future release.
+
+[source,groovy]
 ----
 hdfs.copyFromLocal('data/tinkerpop-modern.kryo', 'tinkerpop-modern.kryo')
 hdfs.ls()

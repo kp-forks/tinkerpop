@@ -64,6 +64,39 @@ emulate its structure as best as possible given the constructs of the host langu
 variants ensures that the general Gremlin reference documentation is applicable to all variants and that users moving
 between development languages can easily adopt the Gremlin variant for that language.
 
+[[canonical-gremlin-definition]]
+=== Canonical Gremlin and GremlinLang
+
+"Canonical Gremlin" refers to the standard, language-neutral string representation of a Gremlin traversal as defined by
+the ANTLR grammar in the `gremlin-language` module. This grammar is the single source of truth for valid Gremlin syntax
+and is what the `gremlin-lang` script engine on Gremlin Server uses to parse incoming requests.
+
+Each GLV driver produces canonical Gremlin strings through a class called `GremlinLang`. When a traversal is built in
+any language (Java, Python, Go, .NET, JavaScript), the driver translates it into a canonical Gremlin string along with a
+map of named parameters. This string is what gets sent to the server over HTTP. Because all drivers produce the same
+canonical format, the wire protocol is human-readable and consistent across languages.
+
+For example, the following traversals in different languages all produce the same canonical Gremlin string
+`g.V().hasLabel("person")`:
+
+[source,java]
+----
+// Java
+GraphTraversal t = g.V().hasLabel("person");
+String script = t.asAdmin().getGremlinLang().getGremlin();
+----
+
+[source,python]
+----
+# Python
+t = g.V().has_label("person")
+script = t.gremlin_lang.get_gremlin()
+----
+
+When documentation or code refers to a "gremlin-lang string", "canonical Gremlin", or "canonical format", it means a
+traversal string that conforms to this ANTLR grammar. The `GremlinTranslator` class can convert canonical Gremlin into
+language-specific syntax for any supported GLV (see <<translators, Translating Gremlin>>).
+
 image::gremlin-variant-architecture.png[width=650]
 
 The following sections describe each language variant and driver that is officially TinkerPop a part of the project,
@@ -130,8 +163,9 @@ remote, err := gremlingo.NewDriverRemoteConnection("http://localhost:8182/gremli
   })
 ----
 
-Gremlin-Go contains an `auth` module that provides factory functions for built-in request interceptors, with plain text
-and SigV4 authentication provided as reference.
+Gremlin-Go contains an `auth` module with built-in request interceptors. Interceptors
+are functions that modify the outgoing HTTP request before it is sent — they are used for authentication, custom
+headers, or request signing. Plain text and SigV4 authentication are provided as built-in interceptors.
 
 [source,go]
 ----
@@ -300,7 +334,8 @@ options := new(RequestOptionsBuilder).
 resultSet, err := client.SubmitWithOptions("g.V(x).count()", options)
 ----
 
-The following options are allowed on a per-request basis in this fashion: `batchSize`, `userAgent`, `evaluationTimeout` and `materializeProperties`.
+The following options are allowed on a per-request basis in this fashion: `batchSize`, `userAgent`,
+`evaluationTimeout` and `materializeProperties`.
 `RequestOptions` may also contain a map of variable `bindings` to be applied to the supplied
 traversal string.
 
@@ -761,9 +796,8 @@ GraphTraversalSource g = traversal().with(conf);
 List<Vertex> vertices = g.with(Tokens.ARGS_EVAL_TIMEOUT, 500L).V().out("knows").toList()
 ----
 
-The following options are allowed on a per-request basis in this fashion: `batchSize`, `requestId`, `userAgent` and
-`evaluationTimeout` (formerly `scriptEvaluationTimeout` which is also supported but now deprecated). Use of `Tokens`
-to reference these options is preferred.
+The following options are allowed on a per-request basis in this fashion: `batchSize`, `userAgent`,
+`materializeProperties` and `evaluationTimeout`. Use of `Tokens` to reference these options is preferred.
 
 anchor:java-imports[]
 [[gremlin-java-imports]]
@@ -938,33 +972,6 @@ Gremlin Server roughly uses this same approach when it configures its serializer
 ensure compatibility when making requests. Obviously, it is possible to switch to GraphSON or GraphBinary by using
 the appropriate `MessageSerializer` (e.g. `GraphSONMessageSerializerV4` or `GraphBinaryMessageSerializerV4` respectively)
 in the same way and building that into the `Cluster` object.
-
-[[gremlin-java-gvalue]]
-=== GValue Parameterization
-
-A `GValue` is an encapsulation of a parameter name and value. The GValue class has a series of static methods to
-construct GValues of various types from a given parameter name and value. Some of the most common examples are listed
-below, see the
-link:++https://tinkerpop.apache.org/javadocs/x.y.z/full/org/apache/tinkerpop/gremlin/process/traversal/step/GValue.html#method.summary++[Javadocs]
-for a complete listing.
-
-[source,java]
-----
-GValue<String> stringArg = GValue.ofString("name", "value");
-GValue<Integer> intArg = GValue.ofInteger("name", 1);
-GValue<Map> mapArg = GValue.ofMap("name", Collections.emptyMap());
-GValue<?> autoTypedArg = GValue.of("name", "value"); // GValue will attempt to automatically detect correct type
-----
-
-A <<traversal-parameterization,subset of gremlin steps>> are able to accept `GValues`. When constructing a
-`GraphTraversal` with such steps in Java, a GValue may be passed in the traversal to utilize a parameter in place of a
-literal.
-
-[source,java]
-----
-g.V().has("name", GValue.ofString("name", "marko"));
-g.mergeV(GValue.ofMap("vertexPattern", Collections.singletonMap("name", "marko")));
-----
 
 [[gremlin-java-gvalue]]
 === GValue Parameterization
@@ -1371,6 +1378,40 @@ Connection Pool Status (size=1 available=1 max=5 toCreate=0 bin=0 waiter=0)
 -- bin --
 ----
 
+[[gremlin-java-differences]]
+=== Differences
+
+Gremlin-Java provides additional syntactic sugar that leverages Java's type system for the `P.typeOf()` predicate,
+which accepts Java `Class` objects directly, providing a more natural way to perform type checking:
+
+[gremlin-groovy,modern]
+----
+// Java-specific syntax using Class objects
+g.V().values("age").is(P.typeOf(Integer.class))
+g.V().values("name").is(P.typeOf(String.class))
+
+// Further simplification with Groovy sugar syntax
+g.E().has("weight", P.typeOf(Double))
+----
+
+This is equivalent to using `GType` enums. Other Gremlin language variants must use the canonical `GType` enum approach:
+
+[gremlin-groovy,modern]
+----
+// Canonical syntax available in all languages
+g.V().values("age").is(P.typeOf(GType.INT))
+g.V().values("name").is(P.typeOf(GType.STRING))
+----
+
+Any valid Java class accepted in the Console and with embedded Java is also accepted by `P.typeOf()`, as they are not
+restricted by the grammar or serialization.
+[gremlin-groovy,modern]
+----
+// Using java.awt.Color for example
+g.inject(java.awt.Color.red)
+g.inject(java.awt.Color.red, "hi", 123).is(P.typeOf(java.awt.Color))
+----
+
 anchor:java-application-examples[]
 [[gremlin-java-examples]]
 === Application Examples
@@ -1432,40 +1473,6 @@ Run the examples:
 java -cp target/run-examples-shaded.jar examples.Connections
 java -cp target/run-examples-shaded.jar examples.BasicGremlin
 java -cp target/run-examples-shaded.jar examples.ModernTraversals
-----
-
-[[gremlin-java-differences]]
-=== Differences
-
-Gremlin-Java provides additional syntactic sugar that leverages Java's type system for the `P.typeOf()` predicate,
-which accepts Java `Class` objects directly, providing a more natural way to perform type checking:
-
-[gremlin-groovy,modern]
-----
-// Java-specific syntax using Class objects
-g.V().values("age").is(P.typeOf(Integer.class))
-g.V().values("name").is(P.typeOf(String.class))
-
-// Further simplification with Groovy sugar syntax
-g.E().has("weight", P.typeOf(Double))
-----
-
-This is equivalent to using `GType` enums. Other Gremlin language variants must use the canonical `GType` enum approach:
-
-[gremlin-groovy,modern]
-----
-// Canonical syntax available in all languages
-g.V().values("age").is(P.typeOf(GType.INT))
-g.V().values("name").is(P.typeOf(GType.STRING))
-----
-
-Any valid Java class accepted in the Console and with embedded Java is also accepted by `P.typeOf()`, as they are not
-restricted by the grammar or serialization.
-[gremlin-groovy,modern]
-----
-// Using java.awt.Color for example
-g.inject(java.awt.Color.red)
-g.inject(java.awt.Color.red, "hi", 123).is(P.typeOf(java.awt.Color))
 ----
 
 [[gremlin-javascript]]
@@ -1784,7 +1791,7 @@ IMPORTANT: The preferred method for setting a per-request timeout for scripts is
 with bytecode may try `g.with(EVALUATION_TIMEOUT, 500)` within a script. Scripts with multiple traversals and multiple
 timeouts will be interpreted as a sum of all timeouts identified in the script for that request.
 
-==== Processing results as they are returned from the Gremlin server
+==== Streaming Results
 
 IMPORTANT: 4.0.0-beta.2 Release - `client.stream()` is not yet implemented for the HTTP driver and will throw an error if
 called. This functionality is planned for a future release.
@@ -2070,20 +2077,13 @@ the remote end.
 include::../../../gremlin-dotnet/test/Gremlin.Net.IntegrationTest/Docs/Reference/GremlinVariantsTests.cs[tags=connecting]
 ----
 
-Authentication is handled through request interceptors. For basic username/password authentication, use the
-`Auth.BasicAuth()` interceptor:
+Authentication is handled through request interceptors. Interceptors are functions that modify the outgoing HTTP
+request before it is sent — they are used for authentication, custom headers, or request signing. The `Auth` class
+provides `BasicAuth()` and `SigV4Auth()` as built-in interceptors:
 
 [source,csharp]
 ----
-include::../../../gremlin-dotnet/test/Gremlin.Net.IntegrationTest/Docs/Reference/GremlinVariantsTests.cs[tags=submittingScriptsWithAuthentication]
-----
-
-Gremlin.Net contains an `Auth` class that provides factory methods for built-in request interceptors, with plain text
-and SigV4 authentication provided as reference.
-
-[source,csharp]
-----
-// Plain text authentication
+// Basic authentication
 var server = new GremlinServer("localhost", 8182, enableSsl: true);
 using var client = new GremlinClient(server,
     connectionSettings: new ConnectionSettings { SkipCertificateValidation = true },
@@ -2193,18 +2193,6 @@ The Gremlin.Net driver uses GraphBinary 4.0 by default. A custom serializer can 
 include::../../../gremlin-dotnet/test/Gremlin.Net.IntegrationTest/Docs/Reference/GremlinVariantsTests.cs[tags=serializationBinary]
 ----
 
-[[gremlin-dotnet-gvalue]]
-=== GValue Parameterization
-
-A `GValue` is an encapsulation of a parameter name and value. A <<traversal-parameterization,subset of gremlin steps>>
-are able to accept GValues. When constructing a `GraphTraversal` with such steps in C#, a GValue may be passed in
-the traversal to utilize a parameter in place of a literal.
-
-[source,csharp]
-----
-g.V().Has("name", new GValue<string>("name", "marko"));
-----
-
 [[gremlin-dotnet-strategies]]
 === Traversal Strategies
 
@@ -2225,6 +2213,18 @@ encoded in the Gremlin.Net GremlinLang and transmitted to the Gremlin traversal 
 
 IMPORTANT: Transaction support over HTTP is not yet implemented in Gremlin.Net. This will be addressed by the official
 4.0.0 release.
+
+[[gremlin-dotnet-gvalue]]
+=== GValue Parameterization
+
+A `GValue` is an encapsulation of a parameter name and value. A <<traversal-parameterization,subset of gremlin steps>>
+are able to accept GValues. When constructing a `GraphTraversal` with such steps in C#, a GValue may be passed in
+the traversal to utilize a parameter in place of a literal.
+
+[source,csharp]
+----
+g.V().Has("name", new GValue<string>("name", "marko"));
+----
 
 [[gremlin-dotnet-scripts]]
 === Submitting Scripts
@@ -2253,8 +2253,8 @@ feature is to set a per-request override to the `evaluationTimeout` so that it o
 include::../../../gremlin-dotnet/test/Gremlin.Net.IntegrationTest/Docs/Reference/GremlinVariantsTests.cs[tags=submittingScriptsWithTimeout]
 ----
 
-The following options are allowed on a per-request basis in this fashion: `batchSize`, `userAgent`, `materializeProperties` and
-`evaluationTimeout`. These options are available as constants on the `Gremlin.Net.Driver.Tokens` class.
+The following options are allowed on a per-request basis in this fashion: `batchSize`, `userAgent`, `materializeProperties`
+and `evaluationTimeout`. These options are available as constants on the `Gremlin.Net.Driver.Tokens` class.
 
 ==== Request Interceptors
 
@@ -2529,8 +2529,9 @@ g = traversal().with_(DriverRemoteConnection(
     'http://localhost:8182/gremlin', 'g', headers={'Header':'Value'}))
 ----
 
-Gremlin-Python contains an `auth` module that allows custom authentication implementation, with plain text and SigV4
-authentication provided as reference.
+Gremlin-Python contains an `auth` module that provides built-in authentication functions. These are passed to the
+`auth` parameter of `DriverRemoteConnection` and add the appropriate HTTP headers to each request. Plain text and
+SigV4 authentication are provided as built-in options.
 
 [source,python]
 ----
@@ -2540,7 +2541,7 @@ g = traversal().with_(DriverRemoteConnection(
 
 # SigV4 authentication
 g = traversal().with_(DriverRemoteConnection(
-    'http://localhost:8182/gremlin', 'g', auth=sigv4(service-region, service-name)))
+    'http://localhost:8182/gremlin', 'g', auth=sigv4('service-region', 'service-name')))
 ----
 
 If you authenticate to a remote <<connecting-gremlin-server,Gremlin Server>> or
@@ -2561,8 +2562,8 @@ Some connection options can also be set on individual requests made through the 
 vertices = g.with_('evaluationTimeout', 500).V().out('knows').to_list()
 ----
 
-The following options are allowed on a per-request basis in this fashion: `batchSize`, `bulkResults`, `language`, `materializeProperties`,
-`userAgent`, and `evaluationTimeout`.
+The following options are allowed on a per-request basis in this fashion: `batchSize`, `bulkResults`, `language`,
+`materializeProperties`, `userAgent`, and `evaluationTimeout`.
 
 anchor:python-imports[]
 [[gremlin-python-imports]]
@@ -2790,8 +2791,8 @@ request.
 result_set = client.submit('g.V().repeat(both()).times(100)', request_options={'evaluationTimeout': 5000})
 ----
 
-The following options are allowed on a per-request basis in this fashion: `batchSize`, `requestId`, `userAgent`, `materializeProperties` and
-`evaluationTimeout` (formerly `scriptEvaluationTimeout` which is also supported but now deprecated).
+The following options are allowed on a per-request basis in this fashion: `batchSize`, `requestId`, `userAgent`,
+`materializeProperties` and `evaluationTimeout` (formerly `scriptEvaluationTimeout` which is also supported but now deprecated).
 
 IMPORTANT: The preferred method for setting a per-request timeout for scripts is demonstrated above, but those familiar
 with bytecode may try `g.with(EVALUATION_TIMEOUT, 500)` within a script. Scripts with multiple traversals and multiple

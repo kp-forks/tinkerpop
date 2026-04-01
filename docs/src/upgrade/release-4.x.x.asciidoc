@@ -23,7 +23,7 @@ image::gremlins-wildest-dreams.png[width=185]
 
 *Gremlin's Wildest Dreams*
 
-== TinkerPop 4.0.0
+== TinkerPop 4.0.0-beta.2
 
 *Release Date: NOT OFFICIALLY RELEASED YET*
 
@@ -32,7 +32,7 @@ complete list of all the modifications that are part of this release.
 
 === Upgrading for Users
 
-==== Pythonic Property Access on Elements
+==== Python Property Access
 
 The `Element` class in `gremlin-python` now supports `__contains__` and `keys()`, enabling more idiomatic Python
 patterns for working with element properties. You can now use the `in` operator to check for property existence and
@@ -116,100 +116,113 @@ g.V().has('name','Alice').out('knows').out('knows').where(neq('Alice')).values('
 
 TinkerPop has generally upgraded to SLF4j 2.x which brings with it some important changes to log initialization which
 may affect user applications that are upgrading from TinkerPop 3.x. Please see the
-link:https://www.slf4j.org/faq.html#changesInVersion200[SLF4j documentation] that explains the differences and how they
-might apply.
+link:https://www.slf4j.org/faq.html[SLF4j FAQ] (specifically "What has changed in SLF4J version 2.0.0?") that explains
+the differences and how they might apply.
 
-==== Configuration changes
+[[canonical-gremlin]]
+==== Canonical Gremlin
 
-* JavaScript GLV
-** `mimeType` setting has been removed. Use `reader` and `writer` options directly to control serialization format.
-** `authenticator` option has been removed. Use `interceptors` with `auth.basic()` or `auth.sigv4()` instead.
-** `session` option has been removed.
-** `interceptors` option has been added to `Client` and `DriverRemoteConnection` for HTTP request modification.
-** `writer` can be set to `null` to skip request serialization, allowing interceptors to handle it directly.
-** `bulkResults` has been added as a request option. `DriverRemoteConnection` defaults it to `true`.
-** `Bytecode` has been replaced with `GremlinLang`.
-** Serialization updated to GraphBinary 4.
-* .NET GLV
-** `ConnectionPoolSettings` has been replaced with `ConnectionSettings` for HTTP connection configuration.
-** `webSocketConfiguration` parameter has been removed.
-** `sessionId` parameter has been removed.
-** `disableCompression` parameter has been removed. Use `ConnectionSettings.EnableCompression` instead.
-** `username` and `password` on `GremlinServer` have been removed. Use `Auth.BasicAuth()` interceptor instead.
-** `interceptors` parameter has been added to `GremlinClient` for HTTP request modification.
-** `requestSerializer` and `responseSerializer` can now be set independently on `GremlinClient`.
-** `Bytecode` has been replaced with `GremlinLang`.
-** `GraphBinaryMessageSerializer` has been replaced with `GraphBinary4MessageSerializer`.
-* Go GLV
-** `AuthInfo` setting has been removed. Use `RequestInterceptors` with `BasicAuth()` or `SigV4Auth()` instead.
-** `TransporterType`, `ReadBufferSize`, `WriteBufferSize`, `WriteDeadline`, `NewConnectionThreshold`, and `Session` settings have been removed.
-** `RequestInterceptors` has been added for HTTP request modification.
-** `MaxIdleConnections`, `IdleConnectionTimeout`, and `KeepAliveInterval` settings have been added.
-** `Bytecode` has been replaced with `GremlinLang`.
-** Serialization updated to GraphBinary 4.
+In previous versions, GLV drivers sent traversals to the server as serialized `Bytecode` objects. In 4.0, `Bytecode`
+has been replaced by `GremlinLang`, which produces a canonical Gremlin string along with a map of named parameters.
+"Canonical Gremlin" is the standard, language-neutral string representation of a traversal as defined by the ANTLR
+grammar in the `gremlin-language` module. Each GLV now builds this canonical string directly, and the server's
+`gremlin-lang` script engine parses it using the same grammar.
+
+This change means all drivers speak the same language on the wire. Request payloads are now human-readable strings
+rather than opaque binary bytecode, making it easier to debug, log, and reason about what is being sent to the server.
+When documentation or code refers to a "gremlin-lang string", "canonical Gremlin", or "canonical format", it means a
+traversal string that conforms to this ANTLR grammar.
+
+For a detailed explanation of canonical Gremlin with examples in each language, see
+link:https://tinkerpop.apache.org/docs/current/reference/#canonical-gremlin-definition[Canonical Gremlin and GremlinLang]
+in the Reference Documentation.
+
+[[glv-driver-changes]]
+==== GLV Driver Changes
+
+All Gremlin Language Variant drivers have been updated with three major changes in TinkerPop 4.0:
+
+1. *HTTP replaces WebSockets* — All drivers now communicate with Gremlin Server over HTTP/1.1 using POST requests.
+   WebSocket-specific settings and classes have been removed. Connection URLs change from `ws://` to `http://` (or
+   `wss://` to `https://`). HTTP connection pooling is handled by each language's standard HTTP library.
+
+2. *Bytecode replaced by GremlinLang* — Traversals are no longer serialized as `Bytecode` objects. Instead, each GLV
+   produces a <<canonical-gremlin, canonical Gremlin>> string via `GremlinLang`, which is sent to the server along with
+   a parameter map. This simplifies the wire protocol and makes request payloads human-readable.
+
+3. *Interceptor-based authentication* — With the move to HTTP, authentication is now handled per-request through
+   HTTP headers rather than during a connection handshake. All drivers use request interceptors to add auth headers
+   before each request is sent. Built-in interceptors are provided for two common scenarios:
+   - `BasicAuth` — adds a standard HTTP Basic `Authorization` header (username/password). This replaces the previous
+     constructor parameters or SASL authenticators used in 3.x.
+   - `SigV4Auth` — signs requests using AWS Signature Version 4. The interceptor handles credential resolution
+     (including automatic refresh for temporary credentials) and request signing transparently.
+   Custom interceptors can also be written to support other authentication schemes your graph provider may require.
+
+The .NET, Go, and JavaScript drivers are new to 4.0 in this release. The Java and Python drivers were updated in the
+beta.1 release and are summarized at the end of this section; see the <<java-requestinterceptor, Java>> and
+<<python-requestinterceptor, Python>> sections in the beta.1 upgrade notes for full details.
 
 [[dotnet-http-interceptor]]
-==== Gremlin.Net HTTP and Interceptor Changes
+==== .NET
 
-The Gremlin.Net driver has been updated to use HTTP instead of WebSockets, aligning it with the Java and Python GLVs.
-The `Connection` class now uses `HttpClient` internally and sends requests via HTTP POST to Gremlin Server.
+The .NET driver (`Gremlin.Net`) has been updated to use HTTP. Connection URLs should be updated from `ws://` to
+`http://` (or `wss://` to `https://`). The following settings have changed:
 
-`Bytecode` has been replaced with `GremlinLang`, which builds a gremlin-lang compatible string representation of a
-traversal along with a map of named parameters. Traversals now produce gremlin-lang strings that are sent to the server
-rather than serialized bytecode.
+- `ConnectionPoolSettings` — replaced with `ConnectionSettings` for HTTP connection configuration.
+- `webSocketConfiguration` — removed.
+- `sessionId` — removed.
+- `disableCompression` — removed. Use `ConnectionSettings.EnableCompression` instead.
+- `username` and `password` on `GremlinServer` — removed.
+- `requestSerializer` and `responseSerializer` — can now be set independently on `GremlinClient`.
+- `GraphBinaryMessageSerializer` — replaced with `GraphBinary4MessageSerializer`.
+- `ConnectionPool` and `WebSocketConnection` — removed. HTTP connection pooling is managed by `SocketsHttpHandler`.
+- Transaction support over HTTP is not yet implemented and `Tx()` will throw `NotSupportedException`.
 
-HTTP interceptors have been added to `gremlin-dotnet` to enable capability similar to that of the Java and Python GLVs.
-Interceptors can be passed to the `GremlinClient` constructor using the `interceptors` parameter. An interceptor is a
-`Func<HttpRequestContext, Task>` that receives a mutable `HttpRequestContext` containing the HTTP method, URI, headers,
-and body. Interceptors are executed in order before the request is sent.
-
-Authentication is now handled through interceptors rather than `GremlinServer` constructor parameters. The `Auth` class
-provides factory methods for built-in interceptors:
+Authentication in 3.x was configured with `username` and `password` on the `GremlinServer` constructor. In 4.0, use
+the `Auth` static methods via the `interceptors` parameter instead:
 
 [source,csharp]
 ----
-// Basic authentication
+// 3.x — credentials on GremlinServer (no longer supported)
+// var server = new GremlinServer("localhost", 8182, true, "username", "password");
+
+// 4.0 — Basic authentication via interceptor
 var server = new GremlinServer("localhost", 8182, enableSsl: true);
 var client = new GremlinClient(server,
     connectionSettings: new ConnectionSettings { SkipCertificateValidation = true },
     interceptors: new[] { Auth.BasicAuth("username", "password") });
 
-// SigV4 authentication
+// 4.0 — SigV4 authentication via interceptor
 var server = new GremlinServer("localhost", 8182, enableSsl: true);
 var client = new GremlinClient(server,
     interceptors: new[] { Auth.SigV4Auth("service-region", "service-name") });
 ----
 
-The serializer has been split into a `requestSerializer` and a `responseSerializer` on `GremlinClient`. Setting
-`requestSerializer` to `null` prevents the `RequestMessage` from being serialized before interceptors run, allowing an
-interceptor to handle serialization and set the `Content-Type` header. This follows the same pattern as the Python
-driver's `request_serializer=None`.
-
-The `ConnectionPool`, `WebSocketConnection`, and related WebSocket classes have been removed. The HTTP connection is
-managed by `SocketsHttpHandler` which handles its own TCP connection pool internally.
-
-Transaction support over HTTP is not yet implemented and `Tx()` will throw `NotSupportedException`.
+Setting `requestSerializer` to `null` prevents the `RequestMessage` from being serialized before interceptors run,
+allowing an interceptor to handle serialization and set the `Content-Type` header directly.
 
 [[go-http-interceptor]]
-==== Gremlin-Go HTTP and Interceptor Changes
+==== Go
 
-The Gremlin-Go driver has been updated to use HTTP instead of WebSockets. The `connection` type now uses Go's standard
-`net/http` package with configurable connection pooling via `http.Transport`.
+The Go driver (`gremlin-go`) has been updated to use HTTP. Connection URLs should be updated from `ws://` to
+`http://` (or `wss://` to `https://`). The following settings have changed:
 
-`Bytecode` has been replaced with `GremlinLang`, which builds a gremlin-lang compatible string representation of a
-traversal along with a map of named parameters.
+- `AuthInfo` — removed.
+- `TransporterType`, `ReadBufferSize`, `WriteBufferSize`, `WriteDeadline`, `NewConnectionThreshold` — removed.
+- `Session` — removed.
+- `MaximumConcurrentConnections`, `MaxIdleConnections`, `IdleConnectionTimeout`, `KeepAliveInterval` — added for HTTP
+  connection pool configuration.
 
-HTTP interceptors have been added to `gremlin-go` to enable capability similar to that of the Java and Python GLVs.
-Interceptors can be passed via the `RequestInterceptors` field in `DriverRemoteConnectionSettings` or `ClientSettings`.
-A `RequestInterceptor` is a `func(*HttpRequest) error` that receives a mutable `HttpRequest` containing the HTTP
-method, URL, headers, and body. Interceptors are executed in order before the request is sent.
-
-Authentication is now handled through interceptors rather than the `AuthInfo` setting. The `auth` module provides
-factory functions for built-in interceptors:
+Authentication in 3.x was configured with the `AuthInfo` setting. In 4.0, use the `BasicAuth()` and `SigV4Auth()`
+interceptors instead:
 
 [source,go]
 ----
-// Basic authentication
+// 3.x — AuthInfo setting (no longer supported)
+// settings.AuthInfo = gremlingo.BasicAuthInfo("username", "password")
+
+// 4.0 — Basic authentication via interceptor
 remote, err := gremlingo.NewDriverRemoteConnection("https://localhost:8182/gremlin",
   func(settings *gremlingo.DriverRemoteConnectionSettings) {
     settings.RequestInterceptors = []gremlingo.RequestInterceptor{
@@ -217,7 +230,7 @@ remote, err := gremlingo.NewDriverRemoteConnection("https://localhost:8182/greml
     }
   })
 
-// SigV4 authentication
+// 4.0 — SigV4 authentication via interceptor
 remote, err := gremlingo.NewDriverRemoteConnection("https://localhost:8182/gremlin",
   func(settings *gremlingo.DriverRemoteConnectionSettings) {
     settings.RequestInterceptors = []gremlingo.RequestInterceptor{
@@ -226,25 +239,52 @@ remote, err := gremlingo.NewDriverRemoteConnection("https://localhost:8182/greml
   })
 ----
 
-The WebSocket-specific settings (`TransporterType`, `ReadBufferSize`, `WriteBufferSize`, `WriteDeadline`,
-`NewConnectionThreshold`, `Session`) have been removed. New HTTP connection pool settings have been added:
-`MaximumConcurrentConnections`, `MaxIdleConnections`, `IdleConnectionTimeout`, and `KeepAliveInterval`.
-
 [[javascript-typescript-esm]]
-==== Gremlin-JavaScript TypeScript and ESM Migration
+==== JavaScript
 
-The `gremlin-javascript` driver has been rewritten in TypeScript and now ships with built-in type declarations. The
-package publishes dual ESM and CommonJS builds, so both `import` and `require` work out of the box.
+The JavaScript driver (`gremlin-javascript`) has been rewritten in TypeScript, migrated to HTTP, and now ships with
+built-in type declarations and dual ESM/CommonJS builds. Connection URLs should be updated from `ws://` to `http://`
+(or `wss://` to `https://`). The following settings have changed:
 
-===== Module format changes
+- `mimeType` — removed. Use `reader` and `writer` options directly.
+- `authenticator` — removed.
+- `session` — removed.
+- `interceptors` — added to `Client` and `DriverRemoteConnection` for HTTP request modification.
+- `writer` — can be set to `null` to skip request serialization, allowing interceptors to handle it directly.
+- `bulkResults` — added as a request option. `DriverRemoteConnection` defaults it to `true`.
+
+Authentication in 3.x was configured with the `authenticator` option. In 4.0, use `auth.basic()` and `auth.sigv4()`
+instead:
+
+[source,javascript]
+----
+import gremlin from 'gremlin';
+const { DriverRemoteConnection, auth } = gremlin.driver;
+
+// 3.x — PlainTextSaslAuthenticator (no longer supported)
+// const authenticator = new gremlin.driver.auth.PlainTextSaslAuthenticator('user', 'pass');
+// new DriverRemoteConnection('ws://localhost:8182/gremlin', { authenticator });
+
+// 4.0 — Basic authentication via interceptor
+const connection = new DriverRemoteConnection('https://localhost:8182/gremlin', {
+  interceptors: auth.basic('username', 'password'),
+});
+
+// 4.0 — SigV4 authentication via interceptor
+// Requires @smithy/signature-v4 and @smithy/hash-node packages
+const connection = new DriverRemoteConnection('https://localhost:8182/gremlin', {
+  interceptors: auth.sigv4('service-region', 'service-name'),
+});
+----
+
+===== TypeScript and Module Format
 
 The package now sets `"type": "module"` in `package.json` and uses conditional `exports`:
 
 - ESM: `import gremlin from 'gremlin'` resolves to `build/esm/index.js`
 - CJS: `const gremlin = require('gremlin')` resolves to `build/cjs/index.cjs`
 
-Existing CommonJS applications using `require('gremlin')` will continue to work without changes. Applications using
-ESM can now use `import` directly:
+Existing CommonJS applications using `require('gremlin')` continue to work without changes:
 
 [source,javascript]
 ----
@@ -258,8 +298,6 @@ import gremlin from 'gremlin';
 import { driver, process, structure } from 'gremlin';
 ----
 
-===== TypeScript support
-
 Type declarations (`.d.ts`) are included in the published package. TypeScript projects can import the driver directly
 without installing separate `@types` packages:
 
@@ -272,69 +310,93 @@ const connection = new gremlin.driver.DriverRemoteConnection('http://localhost:8
 const g = gremlin.process.traversal().with_(connection);
 ----
 
-===== Breaking changes to exports
+===== Breaking Export Changes
 
 Several exports have been removed or renamed compared to 3.x:
 
-- `process.Bytecode` has been removed. Use `process.GremlinLang` instead.
-- `process.Translator` has been removed. To produce a canonical gremlin script from a `Traversal`, use
-  `process.GremlinLang` instead (e.g. `traversal.getGremlinLang().getGremlin()`).
-- `driver.auth.Authenticator` and `driver.auth.PlainTextSaslAuthenticator` have been removed. Use `driver.auth.basic()`
-  and `driver.auth.sigv4()` interceptor factories instead.
-- `structure.io` (the serializer namespace) has been removed. Serialization is now internal to the driver.
-- `Graph.traversal()` has been removed. Use the `process.traversal()` function instead.
+- `process.Bytecode` — removed. Use `process.GremlinLang` instead.
+- `process.Translator` — removed. Use `process.GremlinLang` instead (e.g. `traversal.getGremlinLang().getGremlin()`).
+- `driver.auth.Authenticator` and `driver.auth.PlainTextSaslAuthenticator` — removed. Use `driver.auth.basic()` and
+  `driver.auth.sigv4()` instead.
+- `structure.io` — removed. Serialization is now internal to the driver.
+- `Graph.traversal()` — removed. Use `process.traversal()` instead.
 
-For example, authentication that previously used `PlainTextSaslAuthenticator`:
+==== Java
 
-[source,javascript]
+The Java driver (`gremlin-driver`) was the first to adopt HTTP in the beta.1 release. Connection URLs should be
+updated from `ws://` to `http://` (or `wss://` to `https://`). The following settings have changed:
+
+- `enableCompression` — removed.
+- `bulkResults` — added. See <<result-bulking-from-server, Result Bulking from Server>> for details.
+- `maxContentLength` — renamed to `maxResponseContentLength`. Now limits total response size.
+- `minConnectionPoolSize` — removed. Connections are now closed based on `idleConnectionTimeout` rather than usage
+  thresholds. Multiple connections can be opened concurrently to support bursty workloads.
+
+Authentication in 3.x was configured with `credentials()` on the `Cluster` builder. In 4.0, pass `Auth.basic()` or
+`Auth.sigv4()` to the builder's `auth()` method instead:
+
+[source,java]
 ----
-// 3.x
-const authenticator = new gremlin.driver.auth.PlainTextSaslAuthenticator('username', 'password');
-const client = new gremlin.driver.Client('ws://localhost:8182/gremlin', { authenticator });
+// 3.x — credentials on Cluster builder (no longer supported)
+// Cluster cluster = Cluster.build("localhost").credentials("username", "password").create();
 
-// 4.x
-const client = new gremlin.driver.Client('http://localhost:8182/gremlin', {
-  interceptors: gremlin.driver.auth.basic('username', 'password'),
-});
-----
+// 4.0 — Basic authentication
+Cluster cluster = Cluster.build("localhost").auth(Auth.basic("username", "password")).create();
 
-[[javascript-http-interceptor]]
-==== Gremlin-JavaScript HTTP and Interceptor Changes
-
-The `gremlin-javascript` driver has been updated to use HTTP instead of WebSockets. The `Connection` class now uses
-Node.js `fetch` internally and sends requests via HTTP POST to Gremlin Server.
-
-`Bytecode` has been replaced with `GremlinLang`, which builds a gremlin-lang compatible string representation of a
-traversal along with a map of named parameters. Traversals now produce gremlin-lang strings that are sent to the server
-rather than serialized bytecode.
-
-HTTP interceptors have been added to `gremlin-javascript`. Interceptors can be passed to the `Client` or
-`DriverRemoteConnection` constructor using the `interceptors` option. A `RequestInterceptor` is a function that receives
-an `HttpRequest` object containing the HTTP method, URL, headers, and body, and returns the (possibly modified) request
-or a `Promise` resolving to one. Interceptors are executed in order before the request is sent.
-
-Authentication is now handled through interceptors rather than the previous `authenticator` option. The `auth` module
-provides factory functions for built-in interceptors:
-
-[source,javascript]
-----
-import gremlin from 'gremlin';
-
-const { DriverRemoteConnection, auth } = gremlin.driver;
-
-// Basic authentication
-const connection = new DriverRemoteConnection('https://localhost:8182/gremlin', {
-  interceptors: auth.basic('username', 'password'),
-});
-
-// SigV4 authentication
-const connection = new DriverRemoteConnection('https://localhost:8182/gremlin', {
-  interceptors: auth.sigv4('service-region', 'service-name'),
-});
+// 4.0 — SigV4 authentication
+Cluster cluster = Cluster.build("localhost").auth(Auth.sigv4("service-region", "service-name")).create();
 ----
 
-Setting the `writer` option to `null` prevents the `RequestMessage` from being serialized before interceptors run,
-allowing an interceptor to handle serialization directly where desired.
+For advanced use cases, HTTP interceptors can be configured on `Cluster` using `addInterceptor`,
+`addInterceptorBefore`, `addInterceptorAfter`, and `removeInterceptor`. Each interceptor requires a name for ordering
+and receives an `HttpRequest` containing the request method, URI, headers, and body. A default "serializer"
+interceptor handles serialization of the `RequestMessage` into the format the server expects.
+
+[source,java]
+----
+Cluster cluster = Cluster.build("localhost")
+    .addInterceptor("myAuth", request -> {
+        request.getHeaders().put("Authorization", "Bearer my-token");
+        return request;
+    })
+    .create();
+----
+
+==== Python
+
+The Python driver (`gremlin-python`) adopted HTTP in the beta.1 release. Connection URLs should be updated from
+`ws://` to `http://` (or `wss://` to `https://`). The following settings have changed:
+
+- `enableCompression` — removed.
+- `bulk_results` — added. See <<result-bulking-from-server, Result Bulking from Server>> for details.
+- `message_serializer` — split into `request_serializer` and `response_serializer`.
+- `username` and `password` — replaced with `auth`.
+- `kerberized_service` — removed.
+- `session` — removed.
+
+Authentication in 3.x was configured with `username` and `password` parameters on `DriverRemoteConnection`. In 4.0,
+use the `auth` parameter with `basic()` or `sigv4()` from the `auth` module instead:
+
+[source,python]
+----
+from gremlin_python.driver.auth import basic, sigv4
+
+# 3.x — username/password parameters (no longer supported)
+# g = traversal().with_(DriverRemoteConnection('ws://localhost:8182/gremlin', 'g',
+#     username='stephen', password='password'))
+
+# 4.0 — Basic authentication
+g = traversal().with_(DriverRemoteConnection(
+    'http://localhost:8182/gremlin', 'g', auth=basic('stephen', 'password')))
+
+# 4.0 — SigV4 authentication
+g = traversal().with_(DriverRemoteConnection(
+    'http://localhost:8182/gremlin', 'g', auth=sigv4('service-region', 'service-name')))
+----
+
+HTTP interceptors can be passed to `DriverRemoteConnection` or `Client` using the `interceptors` parameter. An
+interceptor is a `Callable` that receives the HTTP request dictionary (containing headers, payload, and auth). Setting
+`request_serializer` to `None` prevents automatic serialization, allowing an interceptor to handle it directly.
 
 ==== Transactions Re-enabled
 
@@ -455,8 +517,10 @@ For remote cases, BulkSets will now be expanded into Lists upon deserialization 
 already expanded BulkSet to List prior to TinkerPop 4. Each element in the BulkSet will appear in the list the same
 number of times as specified by its bulk value.
 
-==== Configuration changes
-This is a placeholder to summarize configuration-related changes.
+==== Configuration Changes
+
+The following configuration changes were introduced in the beta.1 release for Gremlin Server, Java, and Python. For
+.NET, Go, and JavaScript configuration changes, see <<glv-driver-changes, GLV Driver Changes>> in the section above.
 
 * Gremlin Server
 ** `maxContentLength` setting has been renamed to `maxRequestContentLength`.
@@ -478,7 +542,7 @@ See <<java-requestinterceptor, Changes to Java RequestInterceptor>> for more det
 ** `kerberized_service` setting has been removed.
 ** `session` setting has been removed.
 
-==== Removal of :remote and :submit Console Commands
+==== Console Command Removals
 
 The `:remote` and `:submit` commands, used to establish connections and send scripts to a remote `gremlin-server`, are
 no longer supported in `gremlin-console`. If sending a traversal, users should instead create a `RemoteTraversalSource`
@@ -505,7 +569,7 @@ any graph visualization tool, however there are a number of community-led altern
 listed on the link:https://tinkerpop.apache.org/community.html#powered-by[TinkerPop community page].
 
 [[java-requestinterceptor]]
-==== Changes to Java RequestInterceptor
+==== Java RequestInterceptor
 
 Because the underlying transport has been changed from WebSockets to HTTP, the usage of the `RequestInterceptor` has
 changed as well. The `RequestInterceptor` will now be run per request and will allow you to completely modify the HTTP
@@ -527,7 +591,7 @@ interceptor is responsible for serializing the request body is which what the se
 to be an advanced customization technique that should only be used when needed.
 
 [[python-requestinterceptor]]
-==== Addition of Python interceptor
+==== Python Interceptor
 
 HTTP interceptors have been added to `gremlin-python` to enable capability similar to that of Java GLV. These
 interceptors can be passed into either a `DriverRemoteConnection` or a `Client` using the interceptors parameter. An
@@ -540,9 +604,9 @@ being serialized. Again, this is expected to be an advanced feature so some know
 required to make this work. For example, you'll need to know what payload formats are accepted by `aiohttp` for the
 request to be sent.
 
-==== Changes to deserialization for gremlin-javascript
+==== JavaScript Set Deserialization
 
-Starting from this version, `gremlin-javascript` will deserialize `Set` data into a ECMAScript 2015 Set. Previously,
+Starting from this version, `gremlin-javascript` will deserialize `Set` data into an ECMAScript 2015 `Set`. Previously,
 these were deserialized into arrays.
 
 ==== Gremlin Grammar Changes
@@ -590,7 +654,7 @@ The `none()` step, which was primarily used by `iterate()` to discard traversal 
 renamed to `discard()`. In its place is a new list filtering step `none()`, which takes a predicate as an argument and
 passes lists with no elements matching the predicate.
 
-==== Improved handling of integer overflows
+==== Integer Overflow Handling
 
 Integer overflows caused by addition and multiplication operations will throw an exception instead of being silently
 skipped with incorrect result.
@@ -626,12 +690,12 @@ gremlin> GremlinTranslator.translate("g.V().out('knows')", Translator.GO)
 ==>g.V().Out("knows")
 ----
 
-Further note that Gremlin language variants produce `gremlin-language` compliant strings directly since bytecode was
-removed. As a result, all translators in .NET, Python, Go and Javascript have been removed.
+Further note that Gremlin language variants produce <<canonical-gremlin, canonical Gremlin>> strings directly since
+bytecode was removed. As a result, all translators in .NET, Python, Go and Javascript have been removed.
 
 See: link:https://issues.apache.org/jira/browse/TINKERPOP-3028[TINKERPOP-3028]
 
-==== Change to `OptionsStrategy` in `gremlin-python`
+==== Python OptionsStrategy
 
 The `\\__init__()` syntax has been updated to be both more pythonic and more aligned to the `gremlin-lang` syntax.
 Previously, `OptionsStrategy()` took a single argument `options` which was a `dict` of all options to be set.
@@ -681,7 +745,7 @@ g.with_strategies(TraversalStrategy(
         ))
 ----
 
-==== Changes to Serialization
+==== Serialization
 
 The GLVs will only support GraphBinaryV4 and GraphSON support will be removed. This means that the serializer option
 that was available in most GLVs has been removed. GraphBinary is a more compact format and has support for the same
@@ -699,7 +763,7 @@ PDT. Primitive PDTs are string-based representations of a primitive type support
 contain a map of fields. You should consult your provider's documentation to determine what types of fields a
 particular PDT may contain.
 
-==== Changes to Authentication and Authorization
+==== Authentication and Authorization
 
 With the move to HTTP, the only authentication option supported out-of-the-box is HTTP basic access authentication
 (username/password). The SASL-based authentication mechanisms are no longer supported (e.g. Kerberos). Your graph
