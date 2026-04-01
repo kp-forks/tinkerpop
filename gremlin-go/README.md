@@ -115,7 +115,7 @@ if err != nil {
 }
 ```
 ### Find Vertices
-Getting the property value associated with the added vertex. We currently only support `ToList()` for submitting the remote traversal. Support for `Next()` will be implemented in the subsequent milestones.
+Getting the property value associated with the added vertex.
 ```go
 result, err := g.V().HasLabel("gremlin").Values("language").ToList()
 // Handle error
