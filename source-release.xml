@@ -85,7 +85,6 @@
                 <exclude>gremlin-js/gremlint/node/**</exclude>
                 <exclude>gremlin-js/node_modules/**</exclude>
                 <exclude>gremlin-js/node/**</exclude>
-                <exclude>gremlin-js/package-lock.json</exclude>
                 <exclude>gremlin-dotnet/.glv</exclude>
                 <exclude>gremlin-dotnet/gremlin-*/**</exclude>
                 <exclude>gremlin-dotnet/src/docfx/**</exclude>
@@ -114,6 +113,8 @@
                 <exclude>gremlin-js/gremlin-javascript/etc/**</exclude>
                 <exclude>gremlin-js/gremlin-javascript/node/**</exclude>
                 <exclude>gremlin-js/gremlin-javascript/node_modules/**</exclude>
+                <exclude>gremlin-js/gremlin-javascript/.duel-cache/**</exclude>
+                <exclude>gremlin-js/gremlin-javascript/build/**</exclude>
                 <exclude>gremlin-js/gremlin-javascript/examples/node/node_modules/**</exclude>
                 <exclude>gremlin-go/.glv</exclude>
                 <exclude>gremlin-go/gremlin-*/**</exclude>

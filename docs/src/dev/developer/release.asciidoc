@@ -125,7 +125,7 @@ under release is protected. Tweaks to documentation and other odds and ends rela
 during this period.
 . At some point during the week:
 .. Run a local build `mvn clean install`
-.. Run the full integration test suite: `docker/build.sh -t -i -n`
+.. Run the full integration test suite: `docker/build.sh -t -i`
 .. Build and test the Docker images: `mvn clean install -pl gremlin-server,gremlin-console -DdockerImages`
 .. Ensure that the Gremlin.Net.Template gets packaged successfully: `mvn clean install -pl :gremlin-dotnet-source -Dnuget`
 .. Deploy a final SNAPSHOT to the Apache snapshot repository for Java.
@@ -156,7 +156,7 @@ might be high. Release candidates do not require a vote thread. Lazy consensus i
 deployment.
 
 . `mvn clean install`
-. `docker/build.sh -t -i -n`
+. `docker/build.sh -t -i`
 . `bin/publish-docs.sh <username>` - note that under a release candidate the documentation is published as SNAPSHOT
 . `mvn versions:set -DnewVersion=xx.yy.zz -DgenerateBackupPoms=false` to update the project files to reference a non-SNAPSHOT version
 .. Manually update the `__version__` for `gremlin-python` in `gremlin-python/src/main/python/gremlin_python/__init__.py`

@@ -37,7 +37,7 @@ TinkerPop provides an array of drivers in different programming languages as a w
 Server or Remote Gremlin Provider. Drivers allow the developer to make requests to that remote system and get back
 results from the TinkerPop-enabled graphs hosted within. A driver can submit Gremlin strings and Gremlin traversals
 over this HTTP protocol. Gremlin strings are written in the scripting language made available by the remote system that
-the driver is connecting to (typically, Groovy-based). This connection approach is quite similar to what developers
+the driver is connecting to (typically, <<canonical-gremlin-definition,Canonical Gremlin>>). This connection approach is quite similar to what developers
 are likely familiar with when using JDBC and SQL.
 
 The preferred approach is to use traversal-based requests, which essentially allows the ability to craft Gremlin
@@ -96,8 +96,6 @@ script = t.gremlin_lang.get_gremlin()
 When documentation or code refers to a "gremlin-lang string", "canonical Gremlin", or "canonical format", it means a
 traversal string that conforms to this ANTLR grammar. The `GremlinTranslator` class can convert canonical Gremlin into
 language-specific syntax for any supported GLV (see <<translators, Translating Gremlin>>).
-
-image::gremlin-variant-architecture.png[width=650]
 
 The following sections describe each language variant and driver that is officially TinkerPop a part of the project,
 providing more detailed information about usage, configuration and known limitations.

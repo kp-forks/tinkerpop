@@ -25,7 +25,7 @@ image::gremlins-wildest-dreams.png[width=185]
 
 == TinkerPop 4.0.0-beta.2
 
-*Release Date: NOT OFFICIALLY RELEASED YET*
+*Release Date: April 1, 2026*
 
 Please see the link:https://github.com/apache/tinkerpop/blob/4.0.0/CHANGELOG.asciidoc#release-4-0-0[changelog] for a
 complete list of all the modifications that are part of this release.
@@ -134,7 +134,7 @@ When documentation or code refers to a "gremlin-lang string", "canonical Gremlin
 traversal string that conforms to this ANTLR grammar.
 
 For a detailed explanation of canonical Gremlin with examples in each language, see
-link:https://tinkerpop.apache.org/docs/current/reference/#canonical-gremlin-definition[Canonical Gremlin and GremlinLang]
+link:https://tinkerpop.apache.org/docs/4.0.0-beta.2/reference/#canonical-gremlin-definition[Canonical Gremlin and GremlinLang]
 in the Reference Documentation.
 
 [[glv-driver-changes]]
@@ -142,7 +142,7 @@ in the Reference Documentation.
 
 All Gremlin Language Variant drivers have been updated with three major changes in TinkerPop 4.0:
 
-1. *HTTP replaces WebSockets* — All drivers now communicate with Gremlin Server over HTTP/1.1 using POST requests.
+1. *WebSockets replaced by HTTP* — All drivers now communicate with Gremlin Server over HTTP/1.1 using POST requests.
    WebSocket-specific settings and classes have been removed. Connection URLs change from `ws://` to `http://` (or
    `wss://` to `https://`). HTTP connection pooling is handled by each language's standard HTTP library.
 
