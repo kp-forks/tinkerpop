@@ -134,7 +134,7 @@ Add this to your MCP client configuration:
   "mcpServers": {
     "gremlin": {
       "command": "npx",
-      "args": ["@kpritam/gremlin-mcp"],
+      "args": ["gremlin-mcp"],
       "env": {
         "GREMLIN_MCP_ENDPOINT": "your-server.com:8182/g",
         "GREMLIN_MCP_USERNAME": "your-username",
