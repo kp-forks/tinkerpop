@@ -131,14 +131,14 @@ public final class StepDefinition {
         }));
         add(Pair.with(Pattern.compile("l\\[\\]"), s -> "[]"));
         add(Pair.with(Pattern.compile("l\\[(.*)\\]"), s -> {
-            final String[] items = s.split(",");
-            final String listItems = Stream.of(items).map(String::trim).map(x -> convertToString(x)).collect(Collectors.joining(","));
+            final List<String> items = splitByElement(s);
+            final String listItems = items.stream().map(String::trim).map(x -> convertToString(x)).collect(Collectors.joining(","));
             return String.format("[%s]", listItems);
         }));
         add(Pair.with(Pattern.compile("s\\[\\]"), s -> String.format("{}")));
         add(Pair.with(Pattern.compile("s\\[(.*)\\]"), s -> {
-            final String[] items = s.split(",");
-            final String listItems = Stream.of(items).map(String::trim).map(x -> convertToString(x)).collect(Collectors.joining(","));
+            final List<String> items = splitByElement(s);
+            final String listItems = items.stream().map(String::trim).map(x -> convertToString(x)).collect(Collectors.joining(","));
             return String.format("{%s}", listItems);
         }));
         add(Pair.with(Pattern.compile("d\\[(NaN)\\]"), s -> "NaN"));
@@ -195,14 +195,14 @@ public final class StepDefinition {
 
         add(Pair.with(Pattern.compile("l\\[\\]"), s -> Collections.emptyList()));
         add(Pair.with(Pattern.compile("l\\[(.*)\\]"), s -> {
-            final String[] items = s.split(",");
-            return Stream.of(items).map(String::trim).map(x -> convertToObject(x)).collect(Collectors.toList());
+            final List<String> items = splitByElement(s);
+            return items.stream().map(String::trim).map(x -> convertToObject(x)).collect(Collectors.toList());
         }));
 
         add(Pair.with(Pattern.compile("s\\[\\]"), s -> Collections.emptySet()));
         add(Pair.with(Pattern.compile("s\\[(.*)\\]"), s -> {
-            final String[] items = s.split(",");
-            return Stream.of(items).map(String::trim).map(x -> convertToObject(x)).collect(Collectors.toSet());
+            final List<String> items = splitByElement(s);
+            return items.stream().map(String::trim).map(x -> convertToObject(x)).collect(Collectors.toSet());
         }));
 
         // return the string values as is, used to wrap results that may contain other regex patterns
@@ -682,6 +682,33 @@ public final class StepDefinition {
         // test too, but i guess the test would fail so perhaps ok to just assume it's raw string value that
         // didn't need a transform by default
         return String.format("%s", v);
+    }
+
+    /**
+     * Splits a string on commas while respecting bracket nesting, so that nested collection tokens
+     * like {@code l[1,2,3]} inside a set {@code s[l[1,2,3],l[4,5,6]]} are not incorrectly split.
+     */
+    private static List<String> splitByElement(final String s) {
+        final List<String> result = new ArrayList<>();
+        int depth = 0;
+        final StringBuilder current = new StringBuilder();
+        for (int i = 0; i < s.length(); i++) {
+            final char c = s.charAt(i);
+            if (c == '[') {
+                depth++;
+                current.append(c);
+            } else if (c == ']') {
+                depth--;
+                current.append(c);
+            } else if (c == ',' && depth == 0) {
+                result.add(current.toString());
+                current.setLength(0);
+            } else {
+                current.append(c);
+            }
+        }
+        if (current.length() > 0) result.add(current.toString());
+        return result;
     }
 
     private static Triplet<String,String,String> getEdgeTriplet(final String e) {

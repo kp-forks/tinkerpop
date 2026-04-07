@@ -1187,6 +1187,8 @@ const gremlins = {
     g_V_age_foldX0_plusX: [function({g}) { return g.V().values("age").fold(0, Operator.sum) }], 
     g_injectXa1_b2X_foldXm_addAllX: [function({g}) { return g.inject(new Map([["a", 1]]), new Map([["b", 2]])).fold(new Map([]), Operator.addAll) }], 
     g_injectXa1_b2_b4X_foldXm_addAllX: [function({g}) { return g.inject(new Map([["a", 1]]), new Map([["b", 2]]), new Map([["b", 4]])).fold(new Map([]), Operator.addAll) }], 
+    g_injectXlist1_list2X_fold: [function({g}) { return g.inject([1, 2], [3, 4]).fold() }], 
+    g_injectXlist1_list2_list3X_fold: [function({g}) { return g.inject([1, 2], [3, 4], [5, 6]).fold() }], 
     g_VX1X_formatXstrX: [function({g}) { return g.V().has("name", "marko").format("Hello world") }], 
     g_V_formatXstrX: [function({g}) { return g.V().format("%{name} is %{age} years old") }], 
     g_injectX1X_asXageX_V_formatXstrX: [function({g}) { return g.inject(1).as("age").V().format("%{name} is %{age} years old") }], 

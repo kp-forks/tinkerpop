@@ -437,11 +437,33 @@ function toMerge(value) {
   return merge[value];
 }
 
+function splitByElement(s) {
+  let depth = 0;
+  let current = '';
+  const results = [];
+  for (const c of s) {
+    if (c === '[') {
+      depth++;
+      current += c;
+    } else if (c === ']') {
+      depth--;
+      current += c;
+    } else if (c === ',' && depth === 0) {
+      results.push(current.trim());
+      current = '';
+    } else {
+      current += c;
+    }
+  }
+  if (current.length > 0) results.push(current.trim());
+  return results;
+}
+
 function toArray(stringList) {
   if (stringList === '') {
     return new Array(0);
   }
-  return stringList.split(',').map(x => parseValue.call(this, x));
+  return splitByElement(stringList).map(x => parseValue.call(this, x));
 }
 
 function toSet(stringList) {
@@ -450,7 +472,7 @@ function toSet(stringList) {
   }
 
   const s = new Set();
-  stringList.split(',').forEach(x => s.add(parseValue.call(this, x)));
+  splitByElement(stringList).forEach(x => s.add(parseValue.call(this, x)));
   return s;
 }
 

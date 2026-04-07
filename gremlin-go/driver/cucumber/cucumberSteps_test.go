@@ -247,6 +247,33 @@ func toPath(stringObjects, graphName string) interface{} {
 	}
 }
 
+// splitByElement splits a string on commas while respecting bracket nesting depth,
+// so that nested tokens like l[1,2,3] inside s[l[1,2,3],l[4,5,6]] are not split incorrectly.
+func splitByElement(s string) []string {
+	var result []string
+	depth := 0
+	current := strings.Builder{}
+	for _, c := range s {
+		switch {
+		case c == '[':
+			depth++
+			current.WriteRune(c)
+		case c == ']':
+			depth--
+			current.WriteRune(c)
+		case c == ',' && depth == 0:
+			result = append(result, strings.TrimSpace(current.String()))
+			current.Reset()
+		default:
+			current.WriteRune(c)
+		}
+	}
+	if current.Len() > 0 {
+		result = append(result, strings.TrimSpace(current.String()))
+	}
+	return result
+}
+
 // Parse list.
 func toList(stringList, graphName string) interface{} {
 	listVal := make([]interface{}, 0)
@@ -254,7 +281,7 @@ func toList(stringList, graphName string) interface{} {
 		return listVal
 	}
 
-	for _, str := range strings.Split(stringList, ",") {
+	for _, str := range splitByElement(stringList) {
 		listVal = append(listVal, parseValue(str, graphName))
 	}
 	return listVal
@@ -266,7 +293,7 @@ func toSet(stringSet, graphName string) interface{} {
 	if len(stringSet) == 0 {
 		return setVal
 	}
-	for _, str := range strings.Split(stringSet, ",") {
+	for _, str := range splitByElement(stringSet) {
 		setVal.Add(parseValue(str, graphName))
 	}
 	return setVal

@@ -1159,6 +1159,8 @@ world.gremlins = {
     'g_V_age_foldX0_plusX': [(lambda g:g.V().values('age').fold(0, Operator.sum_))], 
     'g_injectXa1_b2X_foldXm_addAllX': [(lambda g:g.inject({ 'a': 1 }, { 'b': 2 }).fold({  }, Operator.add_all))], 
     'g_injectXa1_b2_b4X_foldXm_addAllX': [(lambda g:g.inject({ 'a': 1 }, { 'b': 2 }, { 'b': 4 }).fold({  }, Operator.add_all))], 
+    'g_injectXlist1_list2X_fold': [(lambda g:g.inject([1, 2], [3, 4]).fold())], 
+    'g_injectXlist1_list2_list3X_fold': [(lambda g:g.inject([1, 2], [3, 4], [5, 6]).fold())], 
     'g_VX1X_formatXstrX': [(lambda g:g.V().has('name', 'marko').format_('Hello world'))], 
     'g_V_formatXstrX': [(lambda g:g.V().format_('%{name} is %{age} years old'))], 
     'g_injectX1X_asXageX_V_formatXstrX': [(lambda g:g.inject(1).as_('age').V().format_('%{name} is %{age} years old'))], 
