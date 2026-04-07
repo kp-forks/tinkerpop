@@ -229,6 +229,9 @@ This release also includes changes from <<release-3-7-5, 3.7.5>>.
 
 image::https://raw.githubusercontent.com/apache/tinkerpop/master/docs/static/images/gremlin-zamfir.png[width=185]
 
+[[release-3-7-7]]
+=== TinkerPop 3.7.7 (Release Date: NOT OFFICIALLY RELEASED YET)
+
 [[release-3-7-6]]
 === TinkerPop 3.7.6 (Release Date: April 1, 2026)
 
