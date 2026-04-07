@@ -82,3 +82,25 @@ Feature: Step - fold()
     Then the result should be unordered
       | result |
       | m[{"a":"d[1].i", "b":"d[4].i"}] |
+
+  Scenario: g_injectXlist1_list2X_fold
+    Given the empty graph
+    And the traversal of
+      """
+      g.inject([1, 2], [3, 4]).fold()
+      """
+    When iterated to list
+    Then the result should be unordered
+      | result |
+      | l[l[d[1].i,d[2].i],l[d[3].i,d[4].i]] |
+
+  Scenario: g_injectXlist1_list2_list3X_fold
+    Given the empty graph
+    And the traversal of
+      """
+      g.inject([1, 2], [3, 4], [5, 6]).fold()
+      """
+    When iterated to list
+    Then the result should be unordered
+      | result |
+      | l[l[d[1].i,d[2].i],l[d[3].i,d[4].i],l[d[5].i,d[6].i]] |

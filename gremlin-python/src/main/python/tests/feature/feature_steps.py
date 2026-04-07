@@ -324,6 +324,27 @@ def unsupported_scenario(step, file):
     return
 
 
+def _split_by_element(s):
+    depth = 0
+    current = []
+    results = []
+    for c in s:
+        if c == '[':
+            depth += 1
+            current.append(c)
+        elif c == ']':
+            depth -= 1
+            current.append(c)
+        elif c == ',' and depth == 0:
+            results.append(''.join(current).strip())
+            current = []
+        else:
+            current.append(c)
+    if current:
+        results.append(''.join(current).strip())
+    return results
+
+
 def _convert(val, ctx):
     graph_name = ctx.graph_name
     if isinstance(val, dict):  # convert dictionary keys/values
@@ -334,9 +355,9 @@ def _convert(val, ctx):
             n[tuple(k) if isinstance(k, (set, list)) else k] = _convert(value, ctx)
         return n
     elif isinstance(val, str) and re.match(r"^l\[.*\]$", val):  # parse list
-        return [] if val == "l[]" else list(map((lambda x: _convert(x, ctx)), val[2:-1].split(",")))
+        return [] if val == "l[]" else list(map((lambda x: _convert(x, ctx)), _split_by_element(val[2:-1])))
     elif isinstance(val, str) and re.match(r"^s\[.*\]$", val):  # parse set
-        return set() if val == "s[]" else set(map((lambda x: _convert(x, ctx)), val[2:-1].split(",")))
+        return set() if val == "s[]" else set(map((lambda x: _convert(x, ctx)), _split_by_element(val[2:-1])))
     elif isinstance(val, str) and re.match(r"^str\[.*\]$", val):  # return string as is
         return val[4:-1]
     elif isinstance(val, str) and re.match(r"^dt\[.*\]$", val):  # parse datetime
