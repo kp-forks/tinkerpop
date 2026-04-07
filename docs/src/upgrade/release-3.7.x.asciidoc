@@ -23,6 +23,13 @@ image::gremlin-zamfir.png[width=185]
 
 *Gremfir Master of the Pan Flute*
 
+== TinkerPop 3.7.7
+
+*Release Date: NOT OFFICIALLY RELEASED YET*
+
+Please see the link:https://github.com/apache/tinkerpop/blob/3.7.7/CHANGELOG.asciidoc#release-3-7-7[changelog] for a
+complete list of all the modifications that are part of this release.
+
 == TinkerPop 3.7.6
 
 *Release Date: April 1, 2026*
