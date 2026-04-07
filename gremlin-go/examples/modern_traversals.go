@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/apache/tinkerpop/gremlin-go/v3/driver"
+	"github.com/apache/tinkerpop/gremlin-go/v4/driver"
 )
 
 var __ = gremlingo.T__

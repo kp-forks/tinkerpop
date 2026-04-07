@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-module github.com/apache/tinkerpop/gremlin-go/v3
+module github.com/apache/tinkerpop/gremlin-go/v4
 
 go 1.25
 

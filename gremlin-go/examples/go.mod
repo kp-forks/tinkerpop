@@ -19,9 +19,9 @@ module example
 
 go 1.25
 
-require github.com/apache/tinkerpop/gremlin-go/v3 v3.8.0
+require github.com/apache/tinkerpop/gremlin-go/v4 v4.0.0-beta.2
 
-replace github.com/apache/tinkerpop/gremlin-go/v3 => ../
+replace github.com/apache/tinkerpop/gremlin-go/v4 => ../
 
 require (
 	github.com/google/uuid v1.6.0 // indirect

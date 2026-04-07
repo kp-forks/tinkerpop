@@ -26,7 +26,7 @@ package gremlingo
 
 import (
 	 "errors"
-	 "github.com/apache/tinkerpop/gremlin-go/v3/driver"
+	 "github.com/apache/tinkerpop/gremlin-go/v4/driver"
 	 "github.com/google/uuid"
 	 "math"
 	 "time"

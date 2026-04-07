@@ -29,7 +29,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/apache/tinkerpop/gremlin-go/v3/driver"
+	"github.com/apache/tinkerpop/gremlin-go/v4/driver"
 )
 
 type ResultSet = gremlingo.ResultSet
