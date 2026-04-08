@@ -35,13 +35,11 @@ hash rsync 2> /dev/null
 
 if [ $? -eq 0 ]; then
   rsync -avq docs/site/home target/site --exclude template
-  rsync -avq docs/gremlint/build/ target/site/home/gremlint
+  rsync -avq docs/gremlint/dist/ target/site/home/gremlint
 else
   cp -R docs/site/home target/site
-  cp -R docs/gremlint/build/. target/site/home/gremlint
+  cp -R docs/gremlint/dist/. target/site/home/gremlint
   rm -rf target/site/home/template
 fi
-
-popd
 
 echo "Home page site generated to $(cd target/site/home ; pwd)"

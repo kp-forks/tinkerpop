@@ -23,11 +23,18 @@ image::gremlins-wildest-dreams.png[width=185]
 
 *Gremlin's Wildest Dreams*
 
+== TinkerPop 4.0.0
+
+*Release Date: NOT OFFICIALLY RELEASED YET*
+
+Please see the link:https://github.com/apache/tinkerpop/blob/4.0.0/CHANGELOG.asciidoc#release-4-0-0[changelog] for a
+complete list of all the modifications that are part of this release.
+
 == TinkerPop 4.0.0-beta.2
 
 *Release Date: April 1, 2026*
 
-Please see the link:https://github.com/apache/tinkerpop/blob/4.0.0/CHANGELOG.asciidoc#release-4-0-0[changelog] for a
+Please see the link:https://github.com/apache/tinkerpop/blob/4.0.0-beta.2/CHANGELOG.asciidoc#release-4-0-0-beta-2[changelog] for a
 complete list of all the modifications that are part of this release.
 
 === Upgrading for Users
@@ -464,8 +471,6 @@ easy-to-read format is well suited to LLMs.
 TinkerPop does retain a small cohort of Java-based "process" tests for embedded graphs wishing to validate some
 additional features that are not well suited to the Gherkin style. Providers who wish to use these simply implement the
 `ProcessEmbeddedStandardSuite` and the `ProcessEmbeddedComputerSuite` as has normally been done in the past.
-
-==== Graph Driver Providers
 
 == TinkerPop 4.0.0-beta.1
 
