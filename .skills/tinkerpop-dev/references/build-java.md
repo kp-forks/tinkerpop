@@ -28,14 +28,14 @@ mvn clean install -pl <module-name>
 
 Examples:
 ```bash
-mvn clean install -pl tinkergraph-gremlin
-mvn clean install -pl gremlin-core
-mvn clean install -pl gremlin-server
+mvn clean install -pl :tinkergraph-gremlin
+mvn clean install -pl :gremlin-core
+mvn clean install -pl :gremlin-server
 ```
 
 Build a module and its dependencies:
 ```bash
-mvn clean install -pl gremlin-server -am
+mvn clean install -pl :gremlin-server -am
 ```
 
 ## Gremlin Server
@@ -47,7 +47,7 @@ mvn clean install -pl :gremlin-server -am -DskipTests
 
 Run gremlin-server integration tests:
 ```bash
-mvn clean install -pl gremlin-server -DskipIntegrationTests=false
+mvn clean install -pl :gremlin-server -DskipIntegrationTests=false
 ```
 
 Start Gremlin Server with Docker using the standard test configuration:
@@ -74,7 +74,7 @@ mvn clean install -DtestIteratorLeaks=false
 
 Specify a test seed for reproducible `Random` behavior:
 ```bash
-mvn clean install -DtestSeed
+mvn clean install -DtestSeed=<seed-value>
 ```
 When a test fails, the seed is printed in build output (look for "TestHelper" logger).
 Re-run with the same seed to reproduce.
@@ -94,7 +94,7 @@ mvn -Dmaven.javadoc.skip=true --projects tinkergraph-gremlin test
 
 Build Docker images of Gremlin Server and Console:
 ```bash
-mvn clean install -pl gremlin-server,gremlin-console -DdockerImages
+mvn clean install -pl :gremlin-server,:gremlin-console -DdockerImages
 ```
 
 Skip automatic Docker image build:

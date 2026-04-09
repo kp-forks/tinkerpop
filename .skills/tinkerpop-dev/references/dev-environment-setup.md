@@ -39,11 +39,11 @@ GLV builds and many integration tests will be skipped.
 - **Docker and Docker Compose** — required for all GLV test execution. Docker Desktop includes
   both. GLV tests run inside Docker containers, so local language runtimes are optional for
   test execution via Maven.
-- **Python 3.9+** — optional for local development; Docker handles test execution.
-- **Node.js 20+ / npm 10+** — optional; Maven downloads a local copy via `frontend-maven-plugin`.
+- **Python 3.10+** — optional for local development; Docker handles test execution.
+- **Node.js 22+ / npm 10+** — optional; Maven downloads a local copy via `frontend-maven-plugin`.
   Consider [nvm](https://github.com/nvm-sh/nvm) for version management.
 - **.NET SDK 8.0+** — optional; Docker handles test execution.
-- **Go 1.22+** — optional; Docker handles test execution.
+- **Go 1.25+** — optional; Docker handles test execution.
 
 ## Environment Verification
 
@@ -95,9 +95,9 @@ Once `.glv` files are in place, a standard `mvn clean install` will include thos
 The `.glv` files are gitignored.
 
 Alternatively, activate GLV builds explicitly with Maven profiles without `.glv` files:
-- Python: `mvn clean install -Pglv-python -pl gremlin-python`
-- .NET: `mvn clean install -pl gremlin-dotnet,gremlin-dotnet-source,gremlin-dotnet-tests`
-- Go: `mvn clean install -Pglv-go -pl gremlin-go`
+- Python: `mvn clean install -Pglv-python -pl :gremlin-python`
+- .NET: `mvn clean install -Pgremlin-dotnet -pl :gremlin-dotnet,:gremlin-dotnet-source,:gremlin-dotnet-tests`
+- Go: `mvn clean install -Pglv-go -pl :gremlin-go`
 
 ## Groovy / Ivy Configuration
 

@@ -21,7 +21,7 @@ under the License.
 
 ## Requirements
 
-- **Go 1.22+** — optional for local development; Docker handles test execution via Maven.
+- **Go 1.25+** — optional for local development; Docker handles test execution via Maven.
 - **Docker and Docker Compose** — required for running tests through Maven.
 - **Maven** — preferred build orchestration.
 
@@ -56,7 +56,7 @@ Run from the repository root.
 
 Build and test (requires Docker):
 ```bash
-mvn clean install -Pglv-go -pl gremlin-go
+mvn clean install -Pglv-go -pl :gremlin-go
 ```
 
 The Maven build uses Docker Compose to:

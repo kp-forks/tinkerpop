@@ -61,7 +61,7 @@ Run from the repository root.
 
 Build and test (requires Docker):
 ```bash
-mvn clean install -pl gremlin-dotnet,gremlin-dotnet-source,gremlin-dotnet-tests
+mvn clean install -pl :gremlin-dotnet,:gremlin-dotnet-source,:gremlin-dotnet-tests
 ```
 
 The test execution uses Docker Compose to:

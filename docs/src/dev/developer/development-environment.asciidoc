@@ -568,7 +568,7 @@ supported:
 A list of command line options is provided by `docker/build.sh --help`. The container will install,
 configure and start all required dependencies, such as Hadoop.
 
-By default, this script will run every module in the project. However, if you are planning on working on just  
+By default, this script will run every module in the project. However, if you are planning on working on just a 
 small set of the modules (e.g. the GLVs) then you can use the script options to reduce the modules included by
 specifically selecting which modules you want. This behavior is currently supported for the non-Java GLVs and
 gremlin-console. This option will include only the selected modules as well as gremlin-server, gremlin-test,

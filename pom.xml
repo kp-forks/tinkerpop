@@ -485,6 +485,12 @@ limitations under the License.
                         <exclude>**/.project</exclude>
                         <exclude>**/.settings/**</exclude>
                         <exclude>**/.idea/**</exclude>
+                         <exclude>**/.claude/**</exclude>
+                         <exclude>**/.codex/**</exclude>
+                         <exclude>**/.copilot/**</exclude>
+                         <exclude>**/.cursor/**</exclude>
+                         <exclude>**/.kiro/**</exclude>
+                         <exclude>**/.junie/**</exclude>
                         <exclude>.repository/**</exclude>
                         <exclude>**/target/**</exclude>
                         <exclude>data/*.txt</exclude>

@@ -44,13 +44,15 @@ echo ""
 echo "Core prerequisites:"
 if command -v java &>/dev/null; then
     java_version=$(java -version 2>&1 | head -1 | sed 's/.*"\(.*\)".*/\1/' | cut -d. -f1)
-    if [[ "$java_version" -ge 11 ]]; then
-        ok "Java $java_version (11+ required)"
+    if [[ "$java_version" -eq 11 || "$java_version" -eq 17 ]]; then
+        ok "Java $java_version (11 or 17 required)"
+    elif [[ "$java_version" -gt 17 ]]; then
+        bad "Java $java_version found — only Java 11 or 17 are supported (use sdkman.io to switch)"
     else
-        bad "Java $java_version found — version 11 or 17 required"
+        bad "Java $java_version found — version 11 or 17 required (use sdkman.io to install)"
     fi
 else
-    bad "Java not found — install Java 11 or 17 (try sdkman.io)"
+    bad "Java not found — install Java 11 or 17 (use sdkman.io)"
 fi
 
 # --- Maven ---
@@ -87,7 +89,7 @@ echo "Optional (GLV development):"
 # --- Python ---
 if command -v python3 &>/dev/null; then
     py_version=$(python3 --version 2>&1 | grep -oE '[0-9]+\.[0-9]+')
-    ok "Python $py_version (3.9+ recommended for gremlin-python local dev)"
+    ok "Python $py_version (3.10+ recommended for gremlin-python local dev)"
 else
     skip "Python 3 not found — Docker handles test execution, but local dev needs it"
 fi
@@ -95,7 +97,7 @@ fi
 # --- Node.js ---
 if command -v node &>/dev/null; then
     node_version=$(node --version 2>/dev/null | sed 's/v//')
-    ok "Node.js $node_version (20+ recommended for gremlin-js local dev)"
+    ok "Node.js $node_version (22+ recommended for gremlin-js local dev)"
 else
     skip "Node.js not found — Maven downloads a local copy automatically"
 fi
@@ -111,7 +113,7 @@ fi
 # --- Go ---
 if command -v go &>/dev/null; then
     go_version=$(go version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?')
-    ok "Go $go_version (1.22+ recommended for gremlin-go local dev)"
+    ok "Go $go_version (1.25+ recommended for gremlin-go local dev)"
 else
     skip "Go not found — Docker handles test execution"
 fi
