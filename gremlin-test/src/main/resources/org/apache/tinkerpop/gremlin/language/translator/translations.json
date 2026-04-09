@@ -23284,6 +23284,40 @@
         ]
     },
     {
+        "scenario": "g_injectXlist1_list2X_fold",
+        "traversals": [
+            {
+                "original": "g.inject([1, 2], [3, 4]).fold()",
+                "language": "g.inject([1, 2], [3, 4]).fold()",
+                "canonical": "g.inject([1, 2], [3, 4]).fold()",
+                "anonymized": "g.inject(list0, list1).fold()",
+                "dotnet": "g.Inject<object>(new List<object> { 1, 2 }, new List<object> { 3, 4 }).Fold()",
+                "go": "g.Inject([]interface{}{1, 2}, []interface{}{3, 4}).Fold()",
+                "groovy": "g.inject([1, 2], [3, 4]).fold()",
+                "java": "g.inject(new ArrayList<Object>() {{ add(1); add(2); }}, new ArrayList<Object>() {{ add(3); add(4); }}).fold()",
+                "javascript": "g.inject([1, 2], [3, 4]).fold()",
+                "python": "g.inject([1, 2], [3, 4]).fold()"
+            }
+        ]
+    },
+    {
+        "scenario": "g_injectXlist1_list2_list3X_fold",
+        "traversals": [
+            {
+                "original": "g.inject([1, 2], [3, 4], [5, 6]).fold()",
+                "language": "g.inject([1, 2], [3, 4], [5, 6]).fold()",
+                "canonical": "g.inject([1, 2], [3, 4], [5, 6]).fold()",
+                "anonymized": "g.inject(list0, list1, list2).fold()",
+                "dotnet": "g.Inject<object>(new List<object> { 1, 2 }, new List<object> { 3, 4 }, new List<object> { 5, 6 }).Fold()",
+                "go": "g.Inject([]interface{}{1, 2}, []interface{}{3, 4}, []interface{}{5, 6}).Fold()",
+                "groovy": "g.inject([1, 2], [3, 4], [5, 6]).fold()",
+                "java": "g.inject(new ArrayList<Object>() {{ add(1); add(2); }}, new ArrayList<Object>() {{ add(3); add(4); }}, new ArrayList<Object>() {{ add(5); add(6); }}).fold()",
+                "javascript": "g.inject([1, 2], [3, 4], [5, 6]).fold()",
+                "python": "g.inject([1, 2], [3, 4], [5, 6]).fold()"
+            }
+        ]
+    },
+    {
         "scenario": "g_VX1X_formatXstrX",
         "traversals": [
             {

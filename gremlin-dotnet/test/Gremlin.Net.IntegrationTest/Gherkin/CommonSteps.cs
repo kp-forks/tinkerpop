@@ -492,7 +492,39 @@ namespace Gremlin.Net.IntegrationTest.Gherkin
             {
                 return new List<object?>(0);
             }
-            return stringList.Split(',').Select(x => ParseValue(x, graphName)).ToList();
+            return SplitByElement(stringList).Select(x => ParseValue(x, graphName)).ToList();
+        }
+
+        private static List<string> SplitByElement(string s)
+        {
+            var result = new List<string>();
+            var depth = 0;
+            var current = new System.Text.StringBuilder();
+            foreach (var c in s)
+            {
+                if (c == '[')
+                {
+                    depth++;
+                    current.Append(c);
+                }
+                else if (c == ']')
+                {
+                    depth--;
+                    current.Append(c);
+                }
+                else if (c == ',' && depth == 0)
+                {
+                    result.Add(current.ToString().Trim());
+                    current.Clear();
+                }
+                else
+                {
+                    current.Append(c);
+                }
+            }
+            if (current.Length > 0)
+                result.Add(current.ToString().Trim());
+            return result;
         }
 
         private static object ToDateTime(string date, string graphName)
