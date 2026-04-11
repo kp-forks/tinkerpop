@@ -437,6 +437,16 @@ value, causing the map pattern to consume part of the surrounding bracket syntax
 set-of-sets) and nesting of scalar types (vertices, edges, numbers, strings) inside lists or sets works as
 expected.
 
+When using this syntax, it is important to remember that lists and sets may contain other lists or sets as elements,
+allowing for nested collection notation such as `l[l[d[1].i,d[2].i],l[d[3].i,d[4].i]]`. The step definitions across all
+language variants parse these correctly by tracking bracket depth so that commas inside inner brackets are not treated
+as top-level separators. However, mixed-type nesting is not supported — a list or set may not contain a map as a direct
+element (e.g. `l[m[{"name":"marko"}]]` will not parse correctly). This limitation exists because the type notation
+matchers are applied in order using substring matching, and the `m[...]` matcher fires before `l[...]` on the outer
+value, causing the map pattern to consume part of the surrounding bracket syntax. Same-type nesting (list-of-lists,
+set-of-sets) and nesting of scalar types (vertices, edges, numbers, strings) inside lists or sets works as
+expected.
+
 In addition, parameter names should adhere to a common form as they hold some meaning to certain language variant
 implementations:
 

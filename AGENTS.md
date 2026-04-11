@@ -32,6 +32,7 @@ These rules apply to any AI/IDE assistant operating on this repository.
 - Update or add tests when behavior changes.
 - Update documentation and/or changelog when you change public behavior or APIs.
 - Follow existing patterns for code structure, documentation layout, and naming.
+- If code is ready, stop and ask to commit, push or merge manually.
 
 ### Don't
 
@@ -41,6 +42,9 @@ These rules apply to any AI/IDE assistant operating on this repository.
 - Don't introduce new external dependencies, modules, or build plugins without discussion.
 - Don't invent project policies, version numbers, or release names.
 - Don't remove or weaken tests to "fix" failures; adjust the implementation or test data instead.
+- Don't push to any branch.
+- Don't merge any PR or branch.
+- Don't create tags or releases.
 
 ### When In Doubt
 
