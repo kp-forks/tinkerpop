@@ -485,6 +485,12 @@ limitations under the License.
                         <exclude>**/.project</exclude>
                         <exclude>**/.settings/**</exclude>
                         <exclude>**/.idea/**</exclude>
+                         <exclude>**/.claude/**</exclude>
+                         <exclude>**/.codex/**</exclude>
+                         <exclude>**/.copilot/**</exclude>
+                         <exclude>**/.cursor/**</exclude>
+                         <exclude>**/.kiro/**</exclude>
+                         <exclude>**/.junie/**</exclude>
                         <exclude>.repository/**</exclude>
                         <exclude>**/target/**</exclude>
                         <exclude>data/*.txt</exclude>
@@ -563,6 +569,8 @@ limitations under the License.
                         <exclude>**/go.sum</exclude>
                         <exclude>**/coverage.out</exclude>
                         <exclude>**/gremlinconsoletest.egg-info/**</exclude>
+                        <!-- SKILL.md requires frontmatter at very start of file so that precludes use of the license header -->
+                        <exclude>**/.skills/**/SKILL.md</exclude>
                     </excludes>
                     <licenses>
                         <license implementation="org.apache.rat.analysis.license.ApacheSoftwareLicense20"/>

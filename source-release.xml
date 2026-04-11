@@ -48,6 +48,14 @@
                      of these files will be present. So, it's safer to exclude them.
                 -->
 
+                <!-- AI coding agent directories -->
+                <exclude>**/.claude/**</exclude>
+                <exclude>**/.codex/**</exclude>
+                <exclude>**/.copilot/**</exclude>
+                <exclude>**/.cursor/**</exclude>
+                <exclude>**/.kiro/**</exclude>
+                <exclude>**/.junie/**</exclude>
+
                 <!-- IDEs -->
                 <exclude>%regex[(?!((?!${project.build.directory}/)[^/]+/)*src/)(.*/)?maven-eclipse\.xml]</exclude>
                 <exclude>%regex[(?!((?!${project.build.directory}/)[^/]+/)*src/)(.*/)?\.project]</exclude>
@@ -81,10 +89,6 @@
                 <exclude>docs/gremlint/package-lock.json</exclude>
                 <exclude>docs/gremlint/node_modules/**</exclude>
                 <exclude>docs/gremlint/build/**</exclude>
-                <exclude>gremlin-js/gremlint/node_modules/**</exclude>
-                <exclude>gremlin-js/gremlint/node/**</exclude>
-                <exclude>gremlin-js/node_modules/**</exclude>
-                <exclude>gremlin-js/node/**</exclude>
                 <exclude>gremlin-dotnet/.glv</exclude>
                 <exclude>gremlin-dotnet/gremlin-*/**</exclude>
                 <exclude>gremlin-dotnet/src/docfx/**</exclude>
@@ -106,6 +110,10 @@
                 <exclude>gremlin-python/src/main/python/.idea/**</exclude>
                 <exclude>gremlin-python/src/main/python/.eggs/**</exclude>
                 <exclude>gremlin-python/src/main/python/**/__pycache__/**</exclude>
+                <exclude>gremlin-js/gremlint/node_modules/**</exclude>
+                <exclude>gremlin-js/gremlint/node/**</exclude>
+                <exclude>gremlin-js/node_modules/**</exclude>
+                <exclude>gremlin-js/node/**</exclude>
                 <exclude>gremlin-js/gremlin-javascript/.glv</exclude>
                 <exclude>gremlin-js/gremlin-javascript/.idea/**</exclude>
                 <exclude>gremlin-js/gremlin-javascript/gremlin-*/**</exclude>
@@ -116,12 +124,12 @@
                 <exclude>gremlin-js/gremlin-javascript/.duel-cache/**</exclude>
                 <exclude>gremlin-js/gremlin-javascript/build/**</exclude>
                 <exclude>gremlin-js/gremlin-javascript/examples/node/node_modules/**</exclude>
-                <exclude>gremlin-go/.glv</exclude>
-                <exclude>gremlin-go/gremlin-*/**</exclude>
-                <exclude>gremlin-go/coverage.out</exclude>
                 <exclude>gremlin-js/gremlin-mcp/node_modules/**</exclude>
                 <exclude>gremlin-js/gremlin-mcp/node/**</exclude>
                 <exclude>gremlin-js/gremlin-mcp/dist/**</exclude>
+                <exclude>gremlin-go/.glv</exclude>
+                <exclude>gremlin-go/gremlin-*/**</exclude>
+                <exclude>gremlin-go/coverage.out</exclude>
             </excludes>
         </fileSet>
         <!-- license, readme, etc. calculated at build time -->
