@@ -192,7 +192,8 @@ These rules apply to any AI/IDE assistant operating on this repository.
 - **Do** update documentation and/or changelog when you change public behavior or APIs.
 - **Do** follow existing patterns for code structure, documentation layout, and naming.
 - **Do** point maintainers to relevant documentation or issues when proposing non‑trivial changes.
-
+- **Do** stop to ask human to commit, push or merge manually, when code is ready.
+ 
 ### 8.2 Don’t
 
 - **Don’t** perform large, sweeping refactors (across many modules or files) unless explicitly requested.
@@ -201,6 +202,9 @@ These rules apply to any AI/IDE assistant operating on this repository.
 - **Don’t** introduce new external dependencies, modules, or build plugins without an associated discussion and issue.
 - **Don’t** invent project policies, version numbers, or release names.
 - **Don’t** remove or weaken tests to “fix” failures; adjust the implementation or the test data instead.
+- **Don't** push to any branch.
+- **Don't** merge any PR or branch.
+- **Don't** create tags or releases.
 
 If you are uncertain about the impact of a change, prefer to:
 
