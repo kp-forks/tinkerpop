@@ -61,3 +61,4 @@ gremlin-js/node_modules/
 gremlin-js/node/
 .dolt/
 *.db
+state.json
