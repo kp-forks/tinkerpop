@@ -51,34 +51,14 @@ completely when it is no longer maintained.
 
 == TinkerPop 4.x
 TinkerPop 4 marks the beginning of the move into semantic versioning, as discussed in the link:https://lists.apache.org/thread/g85tbsocmpv5oksq0xs425cgrw8xkdnn[DISCUSS thread].
-Development has begun with the switch from WebSocket to HTTP/1.1 for the underlying transport of Gremlin Server, along
-with many new features that have been proposed. Here is a rough outline of where new features are expected to land, with
-major breaking features lined for 4.0, and additional features lined up for minor versions.
-Additional details on each feature can be found in the Appendix.
+Development has begun with the switch from WebSocket to HTTP/1.1 for the underlying transport of Gremlin Server, with
+two 4.0.0 beta versions already published for user preview, along with new features that have been proposed. Here is a
+rough outline of where each feature is expected to land, with major breaking features lined for 4.0, and additional
+features lined up for minor versions. Additional details on each feature can be found in the Appendix.
 
-=== 4.0 Milestone Release (2024Q4)
-As discussed in the link:https://lists.apache.org/thread/hh58k28qy49lb9k7b9j4mnqvpxj0xf85[DISCUSS thread], we are looking
-to release a milestone build of what is done so far to gather feedback.
+=== 4.0 (2026H2)
 
-This milestone would roughly offer the opportunity to try Gremlin Server HTTP with the revised GraphSON and GraphBinary
-serialization formats for TinkerPop 4.0, using Java and Python drivers. These drivers will initially continue to support
-GraphSON as it can help with debugging (given its human-readable format)  and offers wider serialization options for users
-in these early days, we should expect to just have GraphBinary support for drivers in the future for simplicity.
-
-This milestone release would include the following list of features for preview:
-
-* <<http-support>>
-** Replacement of WebSocket with HTTP/1.1 (link:https://lists.apache.org/thread/vfs1j9ycb8voxwc00gdzfmlg2gghx3n1[DISCUSS thread])
-* <<http-support-glv>> - Switching from WebSocket to HTTP in GLVs relies on community contribution in each language
-** `gremlin-java`
-** `gremlin-python`
-* <<io-updates>> (link:https://lists.apache.org/thread/q7h5yzd2r064lv82njbmt6lmty4s24y7[DISCUSS thread])
-* <<bytecode-removal>> (link:https://lists.apache.org/thread/7m3govzsqtmmj224xs7k5vv1ycnmocjn[DISCUSS thread])
-* <<console-rework>>
-
-=== 4.0 (2025H1)
-
-Full GA release of TinkerPop 4.0.
+Full GA release of TinkerPop 4.0, including features released in the beta versions.
 
 * <<http-support>>
 ** Replacement of WebSocket with HTTP/1.1 (link:https://lists.apache.org/thread/vfs1j9ycb8voxwc00gdzfmlg2gghx3n1[DISCUSS thread])
@@ -98,6 +78,7 @@ Full GA release of TinkerPop 4.0.
 ** Adding support for these APIs in GLVs sets it up for the implementation in the next iteration
 * <<neo4-removal>>
 * <<sparql-deprecate>>
+* <<groovy-removal>>
 
 === 4.1...4.x
 * <<tx-redesign>> - Implementation
@@ -114,13 +95,12 @@ Full GA release of TinkerPop 4.0.
 * <<query-cancel>>
 
 == TinkerPop 5.x
-* <<groovy-removal>>
 * <<type-system>>
 * <<schema-support>>
 * <<pluggable-explain>>
 * <<io-olap>>
 * <<docs-reorg>>
-* <<telemerty>>
+* <<telemetry>>
 * <<meta-props-on-edge>>
 
 ---
