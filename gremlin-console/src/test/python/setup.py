@@ -32,6 +32,7 @@ setup(
     tests_require=[
         'pytest>=4.6.4,<5.0.0',
         'mock>=3.0.5,<4.0.0',
+        'more-itertools<11.0.0',
         'pexpect==4.8.0'
     ]
 )
