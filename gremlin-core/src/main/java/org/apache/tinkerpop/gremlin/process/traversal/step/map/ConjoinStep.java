@@ -67,7 +67,7 @@ public final class ConjoinStep<S> extends ScalarMapStep<S, String> implements Li
             joinResult.delete(joinResult.length() - delimiter.get().length(), joinResult.length());
             return joinResult.toString();
         } else {
-            return null;
+            return "";
         }
     }
 

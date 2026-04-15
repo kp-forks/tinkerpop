@@ -21298,6 +21298,40 @@
         ]
     },
     {
+        "scenario": "g_injectXnull_a_null_bX_conjoinXplusX",
+        "traversals": [
+            {
+                "original": "g.inject([null,\"a\",null,\"b\"]).conjoin(\"+\")",
+                "language": "g.inject([null, \"a\", null, \"b\"]).conjoin(\"+\")",
+                "canonical": "g.inject([null, \"a\", null, \"b\"]).conjoin(\"+\")",
+                "anonymized": "g.inject(list0).conjoin(string0)",
+                "dotnet": "g.Inject<object>(new List<object> { null, \"a\", null, \"b\" }).Conjoin((string) \"+\")",
+                "go": "g.Inject([]interface{}{nil, \"a\", nil, \"b\"}).Conjoin(\"+\")",
+                "groovy": "g.inject([null, \"a\", null, \"b\"]).conjoin(\"+\")",
+                "java": "g.inject(new ArrayList<Object>() {{ add(null); add(\"a\"); add(null); add(\"b\"); }}).conjoin(\"+\")",
+                "javascript": "g.inject([null, \"a\", null, \"b\"]).conjoin(\"+\")",
+                "python": "g.inject([None, 'a', None, 'b']).conjoin('+')"
+            }
+        ]
+    },
+    {
+        "scenario": "g_injectXnull_nullX_conjoinXplusX",
+        "traversals": [
+            {
+                "original": "g.inject([null,null]).conjoin(\"+\")",
+                "language": "g.inject([null, null]).conjoin(\"+\")",
+                "canonical": "g.inject([null, null]).conjoin(\"+\")",
+                "anonymized": "g.inject(list0).conjoin(string0)",
+                "dotnet": "g.Inject<object>(new List<object> { null, null }).Conjoin((string) \"+\")",
+                "go": "g.Inject([]interface{}{nil, nil}).Conjoin(\"+\")",
+                "groovy": "g.inject([null, null]).conjoin(\"+\")",
+                "java": "g.inject(new ArrayList<Object>() {{ add(null); add(null); }}).conjoin(\"+\")",
+                "javascript": "g.inject([null, null]).conjoin(\"+\")",
+                "python": "g.inject([None, None]).conjoin('+')"
+            }
+        ]
+    },
+    {
         "scenario": "g_V_connectedComponent_hasXcomponentX",
         "traversals": [
             {
